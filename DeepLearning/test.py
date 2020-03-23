@@ -1,6 +1,7 @@
 from dataset.CamVid import CamVid
 import validate
 import torch
+import time
 
 test_log_file = None
 def log(msg):
