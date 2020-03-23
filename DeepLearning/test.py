@@ -2,6 +2,12 @@ from dataset.CamVid import CamVid
 import validate
 import torch
 
+test_log_file = None
+def log(msg):
+    global test_log_file
+    print(msg)
+    test_log_file.write(str(msg) + '\n')
+
 class TestConfig:
     def __init__(self, 
         batch_size = 4,
@@ -14,6 +20,10 @@ class TestConfig:
         self.model_path = model_path
 
 def test(net, test_config):
+    global test_log_file
+    test_log_file = open('./test.log.txt', "a")
+    log('******** test begin [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
+    
     net.load_state_dict(torch.load(test_config.model_path))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
@@ -21,11 +31,14 @@ def test(net, test_config):
     
     global_accuracy, classes_avg_accuracy, mIoU, test_loss, classes_accuracy, classes_iou = validate.validate(net, testset, test_config.batch_size, device, test_config.criterion)
 
-    print("-------- Test Summary --------")
-    print("mIoU: " + str(mIoU))
-    print("classes_avg_accuracy: " + str(classes_avg_accuracy))
-    print("global_accuracy: " + str(global_accuracy))
-    print("test_loss: " + str(test_loss))
+    log("-------- Test Summary --------")
+    log("mIoU: " + str(mIoU))
+    log("classes_avg_accuracy: " + str(classes_avg_accuracy))
+    log("global_accuracy: " + str(global_accuracy))
+    log("test_loss: " + str(test_loss))
     for i in range(net.num_classes):
-        print('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, classes_iou[i], classes_accuracy[i], CamVid.classes[i]))
+        log('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, classes_iou[i], classes_accuracy[i], CamVid.classes[i]))
+    
+    log('******** test end [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
+    test_log_file.close()
 
