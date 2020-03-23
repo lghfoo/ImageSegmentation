@@ -8,7 +8,7 @@ from torchvision.datasets.vision import VisionDataset
 from PIL import Image
 
 class CamVid(VisionDataset):
-    
+
     """
     Args:
         root (string): Root directory of dataset where directory ``images``
@@ -94,7 +94,7 @@ class CamVid(VisionDataset):
     def __getitem__(self, index):
         assert index in range(0, len(self.images))
         image = Image.open(self.images[index]).convert('RGB')
-        target = Image.open(self.targets[index]).convert('RGB')
+        target = Image.open(self.targets[index])
         if self.transforms is not None:
             image, target = self.transforms(image, target)
         return image, target
