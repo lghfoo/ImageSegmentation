@@ -37,7 +37,7 @@ class FCN8s(nn.Module):
         self.relu7 = nn.ReLU()
         self.max_pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.max_pool3_predict = nn.Conv2d(in_channels=256, out_channels=self.num_classes, kernel_size=1, stride=1)
-        self.deconv1 = nn.ConvTranspose2d(in_channels=self.num_classes, out_channels=self.num_classes, kernel_size=16, stride=8)
+        # self.deconv1 = nn.ConvTranspose2d(in_channels=self.num_classes, out_channels=self.num_classes, kernel_size=16, stride=8)
         # 第八层
         self.conv8 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu8 = nn.ReLU()
@@ -49,7 +49,7 @@ class FCN8s(nn.Module):
         self.relu10 = nn.ReLU()
         self.max_pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.max_pool4_predict = nn.Conv2d(in_channels=512, out_channels=self.num_classes, kernel_size=1, stride=1)
-        self.deconv2 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2)
+        # self.deconv2 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2)
         # 第十一层
         self.conv11 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu11 = nn.ReLU()
@@ -72,7 +72,29 @@ class FCN8s(nn.Module):
         self.dropout2 = nn.Dropout()
         # 第三层
         self.fc_conv3 = nn.Conv2d(in_channels=4096, out_channels=self.num_classes, kernel_size=1)
-        self.deconv3 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2)
+        # self.deconv3 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2)
+        self.initialize_weights()
+    
+    def initialize_weights(self):
+        nn.init.kaiming_normal_(self.conv1.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv2.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv3.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv4.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv5.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv6.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv7.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.max_pool3_predict.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv8.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv9.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv10.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.max_pool4_predict.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv11.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv12.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.conv13.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.fc_conv1.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.fc_conv2.weight.data, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.fc_conv3.weight.data, mode='fan_in', nonlinearity='relu')
+
 
     def forward(self, x):
         img_size = x.size()[2:]
@@ -129,7 +151,7 @@ class FCN8s(nn.Module):
         # sigmal2 = upsamled2x_sigmal1 + center_crop_tensor(pool3_predict, upsamled2x_sigmal1)
         # upsampled8x = self.deconv1(sigmal2)
         # return center_crop_tensor(upsampled8x, torch.Tensor(1, 1, img_size[0], img_size[1]))
-        
+
         ######## use Interpolate
         upsamled2x = F.interpolate(pool5_predict, size_4)
         sigma1 = upsamled2x + pool4_predict
