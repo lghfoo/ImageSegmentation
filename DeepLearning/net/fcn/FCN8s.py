@@ -120,9 +120,9 @@ class FCN8s(nn.Module):
             (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
             return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]
 
-        upsamled2x = center_crop_tensor(self.deconv3(pool5_predict), pool4_predict)
-        sigma1 = upsamled2x + pool4_predict
-        upsamled2x_sigmal1 = center_crop_tensor(self.deconv2(sigma1), pool3_predict)
-        sigmal2 = upsamled2x_sigmal1 + pool3_predict
-        upsampled8x = center_crop_tensor(self.deconv1(sigmal2), torch.Tensor(1, 1, img_size[0], img_size[1]))
-        return upsampled8x
+        upsamled2x = self.deconv3(pool5_predict)
+        sigma1 = upsamled2x + center_crop_tensor(pool4_predict, upsamled2x)
+        upsamled2x_sigmal1 = self.deconv2(sigma1)
+        sigmal2 = upsamled2x_sigmal1 + center_crop_tensor(pool3_predict, upsamled2x_sigmal1)
+        upsampled8x = self.deconv1(sigmal2)
+        return center_crop_tensor(upsampled8x, torch.Tensor(1, 1, img_size[0], img_size[1]))
