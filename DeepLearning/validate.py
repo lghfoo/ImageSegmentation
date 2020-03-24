@@ -51,7 +51,9 @@ def validate(net, valset, batch_size, device, criterion):
     val_loss = 0
     with torch.no_grad():
         # i = 0
-        for i, inputs, labels in enumerate(val_dataloader):
+        for i, data in enumerate(val_dataloader):
+            inputs = data[0].to(device)
+            labels = data[1].to(device)
             outputs = net(inputs)
             loss = criterion(outputs, labels.squeeze(1).long())
             _, preds = torch.max(outputs, 1)
