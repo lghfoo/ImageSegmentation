@@ -87,7 +87,7 @@ class FCN8s(nn.Module):
         x = self.relu6(self.conv6(x))
         # c7
         x = self.max_pool3(self.relu7(self.conv7(x))) # 1/8
-        size_8 = x.size()[2:]
+        size_8 = x.size()[1:]
         pool3_predict = x.clone()
         
         # c8
@@ -96,7 +96,7 @@ class FCN8s(nn.Module):
         x = self.relu9(self.conv9(x))
         # c10
         x = self.max_pool4(self.relu10(self.conv10(x))) # 1/16
-        size_16 = x.size()[2:]
+        size_16 = x.size()[1:]
         pool4_predict = x.clone()
 
         # c11
@@ -121,6 +121,7 @@ class FCN8s(nn.Module):
         sigma1 = upsamled2x + pool4_predict
         upsamled2x_sigmal1 = F.interpolate(sigma1, size = size_8)
         sigma2 = upsamled2x_sigmal1 + pool3_predict
-        upsamled8x = F.interpolate(sigma2, size = img_size)      
+        final_size = torch.Tensor([x.size()[1], img_size[0], img_size[1]])
+        upsamled8x = F.interpolate(sigma2, size = final_size)
 
         return upsamled8x
