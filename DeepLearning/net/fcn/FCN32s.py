@@ -100,7 +100,7 @@ class FCN32s(nn.Module):
         # c12
         x = self.relu12(self.conv12(x))
         # c13
-        x = self.max_pool5(self.relu13(self.conv13)) # 1/32
+        x = self.max_pool5(self.relu13(self.conv13(x))) # 1/32
 
         # fc1
         x = self.dropout1(self.fc_relu1(self.fc_conv1(x)))
