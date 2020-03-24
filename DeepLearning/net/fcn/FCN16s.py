@@ -28,7 +28,7 @@ class FCN16s(nn.Module):
         self.max_pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
         # 第五层
         self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
-        self.retlu5 = nn.ReLU()
+        self.relu5 = nn.ReLU()
         # 第六层
         self.conv6 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.relu6 = nn.ReLU()
@@ -114,5 +114,5 @@ class FCN16s(nn.Module):
         upsamled2x = F.interpolate(x, size = size_16)
         sigma1 = upsamled2x + pool4_predict
         upsamled16x = F.interpolate(sigma1, size = img_size)        
-        
+
         return upsamled16x

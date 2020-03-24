@@ -24,6 +24,7 @@ net_to_train/test/predict: [
 
 examples:
     -train fcn_alex -o './fcn_alex.pth' -l 0.01 -e 20 -b 4 -d './data/camvid'
+    -train fcn_8s -o './fcn_8s.pth' -l 0.01 -e 80 -b 4 -d './data/camvid'
     -test fcn_alex -i './fcn_alex.pth' -b 4 -d './data/camvid'
     -predict fcn_alex -i './fcn_alex.pth' -im 'xxxxx.png' -o 'xxxxx_seged.png'
 """
