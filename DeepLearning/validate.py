@@ -50,7 +50,6 @@ def validate(net, valset, batch_size, device, criterion):
     iter_count = 0
     val_loss = 0
     with torch.no_grad():
-        # i = 0
         for i, data in enumerate(val_dataloader):
             inputs = data[0].to(device)
             labels = data[1].to(device)
@@ -61,25 +60,9 @@ def validate(net, valset, batch_size, device, criterion):
             intersection_meter.update(intersection)
             union_meter.update(union)
             target_meter.update(target)
-            # i += batch_size
             val_loss += loss.item()
             iter_count += 1
             # break
-        # while i + batch_size < len(valset):
-        #     inputs_and_labels = [valset[i+j] for j in range(batch_size)]
-        #     inputs = torch.stack([inputs_and_labels[i][0] for i in range(batch_size)]).to(device)
-        #     labels = torch.stack([torch.as_tensor(np.array(inputs_and_labels[i][1])) for i in range(batch_size)]).to(device)
-        #     outputs = net(inputs)
-        #     loss = criterion(outputs, labels.squeeze(1).long())
-        #     _, preds = torch.max(outputs, 1)
-        #     intersection, union, target = intersection_and_union(preds, labels, net.num_classes)
-        #     intersection_meter.update(intersection)
-        #     union_meter.update(union)
-        #     target_meter.update(target)
-        #     i += batch_size
-        #     val_loss += loss.item()
-        #     iter_count += 1
-        #     # break
     val_loss /= iter_count
     classes_iou = intersection_meter.sum / (union_meter.sum + 1e-10)
     classes_accuracy = intersection_meter.sum / (target_meter.sum + 1e-10)
