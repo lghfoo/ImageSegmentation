@@ -114,6 +114,10 @@ class FCN8s(nn.Module):
         x = self.fc_conv3(x)
 
         upsamled2x = F.interpolate(x, size = size_16)
+        print(size_16)
+        print(x.size())
+        print(upsamled2x.size())
+        print(pool4_predict.size())
         sigma1 = upsamled2x + pool4_predict
         upsamled2x_sigmal1 = F.interpolate(sigma1, size = size_8)
         sigma2 = upsamled2x_sigmal1 + pool3_predict
