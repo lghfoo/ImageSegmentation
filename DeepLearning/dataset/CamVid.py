@@ -6,6 +6,7 @@ from collections import namedtuple
 import zipfile
 from torchvision.datasets.vision import VisionDataset
 from PIL import Image
+import numpy as np
 
 class CamVid(VisionDataset):
 

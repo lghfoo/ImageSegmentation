@@ -59,7 +59,6 @@ def train(net, train_config):
     trainset = CamVid.CamVid(root=train_config.data_root, split='train')
     train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=0)
     valset = CamVid.CamVid(root=train_config.data_root, split='val')
-    val_dataloader = torch.utils.data.DataLoader(valset, batch_size=4, shuffle=True, num_workers=0)
     criterion = train_config.criterion
     model_path = train_config.model_path
     ### begin train
