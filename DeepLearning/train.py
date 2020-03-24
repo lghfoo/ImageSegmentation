@@ -57,7 +57,9 @@ def train(net, train_config):
     batch_size = train_config.batch_size
     epoch_count = train_config.epoch_count
     trainset = CamVid.CamVid(root=train_config.data_root, split='train')
+    train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=0)
     valset = CamVid.CamVid(root=train_config.data_root, split='val')
+    val_dataloader = torch.utils.data.DataLoader(valset, batch_size=4, shuffle=True, num_workers=0)
     criterion = train_config.criterion
     model_path = train_config.model_path
     ### begin train
@@ -65,22 +67,33 @@ def train(net, train_config):
         i = 0
         train_loss = 0.0
         iter_count = 0
-        while i + batch_size < len(trainset):
-            inputs_and_labels = [trainset[i+j] for j in range(batch_size)]
-            inputs = torch.stack([inputs_and_labels[i][0] for i in range(batch_size)]).to(device)
-            labels = torch.stack([torch.as_tensor(np.array(inputs_and_labels[i][1])) for i in range(batch_size)]).to(device)
-
+        for inputs, labels in enumerate(train_dataloader):
             optimizer.zero_grad()
             outputs = net(inputs)
             loss = criterion(outputs, labels.squeeze(1).long())
             loss.backward()
             optimizer.step()
 
-            i += batch_size
             iter_count += 1
             train_loss += loss.item()
             log('[%d, %5d] loss: %.3f' % (epoch + 1, int(i / batch_size), loss.item()))
             # break
+        # while i + batch_size < len(trainset):
+        #     inputs_and_labels = [trainset[i+j] for j in range(batch_size)]
+        #     inputs = torch.stack([inputs_and_labels[i][0] for i in range(batch_size)]).to(device)
+        #     labels = torch.stack([torch.as_tensor(np.array(inputs_and_labels[i][1])) for i in range(batch_size)]).to(device)
+
+        #     optimizer.zero_grad()
+        #     outputs = net(inputs)
+        #     loss = criterion(outputs, labels.squeeze(1).long())
+        #     loss.backward()
+        #     optimizer.step()
+
+        #     i += batch_size
+        #     iter_count += 1
+        #     train_loss += loss.item()
+        #     log('[%d, %5d] loss: %.3f' % (epoch + 1, int(i / batch_size), loss.item()))
+        #     # break
         train_loss /= iter_count
 
         ### validate

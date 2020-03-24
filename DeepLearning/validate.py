@@ -43,6 +43,7 @@ class AverageMeter(object):
 # input: net, dataset, batch_size, device, criterion
 # output: global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou
 def validate(net, valset, batch_size, device, criterion):
+    val_dataloader = torch.utils.data.DataLoader(valset, batch_size=4, shuffle=True, num_workers=0)
     intersection_meter = AverageMeter()
     union_meter = AverageMeter()
     target_meter = AverageMeter()
@@ -50,10 +51,7 @@ def validate(net, valset, batch_size, device, criterion):
     val_loss = 0
     with torch.no_grad():
         i = 0
-        while i + batch_size < len(valset):
-            inputs_and_labels = [valset[i+j] for j in range(batch_size)]
-            inputs = torch.stack([inputs_and_labels[i][0] for i in range(batch_size)]).to(device)
-            labels = torch.stack([torch.as_tensor(np.array(inputs_and_labels[i][1])) for i in range(batch_size)]).to(device)
+        for inputs, labels in enumerate(val_dataloader):
             outputs = net(inputs)
             loss = criterion(outputs, labels.squeeze(1).long())
             _, preds = torch.max(outputs, 1)
@@ -61,10 +59,25 @@ def validate(net, valset, batch_size, device, criterion):
             intersection_meter.update(intersection)
             union_meter.update(union)
             target_meter.update(target)
-            i += batch_size
+            # i += batch_size
             val_loss += loss.item()
             iter_count += 1
             # break
+        # while i + batch_size < len(valset):
+        #     inputs_and_labels = [valset[i+j] for j in range(batch_size)]
+        #     inputs = torch.stack([inputs_and_labels[i][0] for i in range(batch_size)]).to(device)
+        #     labels = torch.stack([torch.as_tensor(np.array(inputs_and_labels[i][1])) for i in range(batch_size)]).to(device)
+        #     outputs = net(inputs)
+        #     loss = criterion(outputs, labels.squeeze(1).long())
+        #     _, preds = torch.max(outputs, 1)
+        #     intersection, union, target = intersection_and_union(preds, labels, net.num_classes)
+        #     intersection_meter.update(intersection)
+        #     union_meter.update(union)
+        #     target_meter.update(target)
+        #     i += batch_size
+        #     val_loss += loss.item()
+        #     iter_count += 1
+        #     # break
     val_loss /= iter_count
     classes_iou = intersection_meter.sum / (union_meter.sum + 1e-10)
     classes_accuracy = intersection_meter.sum / (target_meter.sum + 1e-10)

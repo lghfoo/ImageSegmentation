@@ -97,6 +97,7 @@ class CamVid(VisionDataset):
         target = Image.open(self.targets[index])
         if self.transforms is not None:
             image, target = self.transforms(image, target)
+        target = torch.as_tensor(np.array(target))
         return image, target
 
     def __len__(self):
