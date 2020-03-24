@@ -35,7 +35,8 @@ def train(net, train_config):
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
-    optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
+    # optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
+    optimizer = optim.SGD(net.parameters(), lr = train_config.learning_rate, momentum=0.9)
     train_info = []
     best_global_accuracy = None
     ### train config
