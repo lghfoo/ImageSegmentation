@@ -45,9 +45,11 @@ def train(net, train_config):
     if train_config.optimizer == 'adagrad':
         optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
     elif train_config.optimizer == 'adadelta':
-        optimizer = optim.Adadelta(net.parameters(), train_config.learning_rate)
+        optimizer = optim.Adadelta(net.parameters(), lr=train_config.learning_rate)
     elif train_config.optimizer == 'sgd':
         optimizer = optim.SGD(net.parameters(), lr = train_config.learning_rate, momentum=0.9)
+    elif train_config.optimizer == 'adam':
+        optimizer = optim.Adam(net.parameters(), lr=train_config.learning_rate)
     else:
         log('unkown optimizer')
         return

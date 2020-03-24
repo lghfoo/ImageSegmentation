@@ -25,7 +25,8 @@ net_to_train/test/predict: [
 optimizer: [
     sgd,
     adagrad,
-    adadelta
+    adadelta,
+    adam
 ]
 
 examples:
