@@ -93,7 +93,8 @@ class FCN8s(nn.Module):
         # c7
         x = self.max_pool3(self.relu7(self.conv7(x))) # 1/8
         pool3_predict = self.max_pool3_predict(x)
-        
+        size_3 = pool3_predict.size()[2:]
+
         # c8
         x = self.relu8(self.conv8(x))
         # c9
@@ -101,6 +102,7 @@ class FCN8s(nn.Module):
         # c10
         x = self.max_pool4(self.relu10(self.conv10(x))) # 1/16
         pool4_predict = self.max_pool4_predict(x)
+        size_4 = pool4_predict.size()[2:]
 
         # c11
         x = self.relu11(self.conv11(x))
@@ -116,13 +118,22 @@ class FCN8s(nn.Module):
         # fc3
         pool5_predict = self.fc_conv3(x)
 
-        def center_crop_tensor(t1, t2):
-            (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
-            return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]
+        ######## use Deconv
+        # def center_crop_tensor(t1, t2):
+        #     (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
+        #     return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]
 
-        upsamled2x = self.deconv3(pool5_predict)
-        sigma1 = upsamled2x + center_crop_tensor(pool4_predict, upsamled2x)
-        upsamled2x_sigmal1 = self.deconv2(sigma1)
-        sigmal2 = upsamled2x_sigmal1 + center_crop_tensor(pool3_predict, upsamled2x_sigmal1)
-        upsampled8x = self.deconv1(sigmal2)
-        return center_crop_tensor(upsampled8x, torch.Tensor(1, 1, img_size[0], img_size[1]))
+        # upsamled2x = self.deconv3(pool5_predict)
+        # sigma1 = upsamled2x + center_crop_tensor(pool4_predict, upsamled2x)
+        # upsamled2x_sigmal1 = self.deconv2(sigma1)
+        # sigmal2 = upsamled2x_sigmal1 + center_crop_tensor(pool3_predict, upsamled2x_sigmal1)
+        # upsampled8x = self.deconv1(sigmal2)
+        # return center_crop_tensor(upsampled8x, torch.Tensor(1, 1, img_size[0], img_size[1]))
+        
+        ######## use Interpolate
+        upsamled2x = F.interpolate(pool5_predict, size_4)
+        sigma1 = upsamled2x + pool4_predict
+        upsampled2x_sigmal1 = F.interpolate(sigma1, size_3)
+        sigma2 = upsampled2x_sigmal1 + pool3_predict
+        upsampled8x = F.interpolate(sigma2, img_size)
+        return upsampled8x
