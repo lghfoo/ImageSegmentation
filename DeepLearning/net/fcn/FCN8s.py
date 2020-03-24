@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import sys
 import argparse
+import numpy as np
 
 class FCN8s(nn.Module):
     def __init__(self, num_classes):
@@ -37,7 +38,7 @@ class FCN8s(nn.Module):
         self.relu7 = nn.ReLU()
         self.max_pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.max_pool3_predict = nn.Conv2d(in_channels=256, out_channels=self.num_classes, kernel_size=1, stride=1)
-        # self.deconv1 = nn.ConvTranspose2d(in_channels=self.num_classes, out_channels=self.num_classes, kernel_size=16, stride=8)
+        self.deconv1 = nn.ConvTranspose2d(in_channels=self.num_classes, out_channels=self.num_classes, kernel_size=16, stride=8, bias=False)
         # 第八层
         self.conv8 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu8 = nn.ReLU()
@@ -49,7 +50,7 @@ class FCN8s(nn.Module):
         self.relu10 = nn.ReLU()
         self.max_pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.max_pool4_predict = nn.Conv2d(in_channels=512, out_channels=self.num_classes, kernel_size=1, stride=1)
-        # self.deconv2 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2)
+        self.deconv2 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2, bias=False)
         # 第十一层
         self.conv11 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu11 = nn.ReLU()
@@ -72,7 +73,7 @@ class FCN8s(nn.Module):
         self.dropout2 = nn.Dropout()
         # 第三层
         self.fc_conv3 = nn.Conv2d(in_channels=4096, out_channels=self.num_classes, kernel_size=1)
-        # self.deconv3 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2)
+        self.deconv3 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2, bias=False)
         self.initialize_weights()
     
     # def initialize_weights(self):
@@ -125,6 +126,26 @@ class FCN8s(nn.Module):
         self.conv12.bias.data = vgg16.features[26].bias.data.clone()
         self.conv13.bias.data = vgg16.features[28].bias.data.clone()
 
+
+        def bilinear_kernel(in_channels, out_channels, kernel_size):
+            '''
+            return a bilinear filter tensor
+            '''
+            factor = (kernel_size + 1) // 2
+            if kernel_size % 2 == 1:
+                center = factor - 1
+            else:
+                center = factor - 0.5
+            og = np.ogrid[:kernel_size, :kernel_size]
+            filt = (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
+            weight = np.zeros((in_channels, out_channels, kernel_size, kernel_size), dtype='float32')
+            weight[range(in_channels), range(out_channels), :, :] = filt
+            return torch.from_numpy(weight)
+        self.deconv1.weight.data = bilinear_kernel(self.num_classes, self.num_classes, 16)
+        self.deconv2.weight.data = bilinear_kernel(self.num_classes, self.num_classes, 4)
+        self.deconv2.weight.data = bilinear_kernel(self.num_classes, self.num_classes, 4)
+
+
     def forward(self, x):
         img_size = x.size()[2:]
         # c1
@@ -170,21 +191,21 @@ class FCN8s(nn.Module):
         pool5_predict = self.fc_conv3(x)
 
         ######## use Deconv
-        # def center_crop_tensor(t1, t2):
-        #     (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
-        #     return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]
+        def center_crop_tensor(t1, t2):
+            (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
+            return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]
 
-        # upsamled2x = self.deconv3(pool5_predict)
-        # sigma1 = upsamled2x + center_crop_tensor(pool4_predict, upsamled2x)
-        # upsamled2x_sigmal1 = self.deconv2(sigma1)
-        # sigmal2 = upsamled2x_sigmal1 + center_crop_tensor(pool3_predict, upsamled2x_sigmal1)
-        # upsampled8x = self.deconv1(sigmal2)
-        # return center_crop_tensor(upsampled8x, torch.Tensor(1, 1, img_size[0], img_size[1]))
+        upsamled2x = self.deconv3(pool5_predict)
+        sigma1 = upsamled2x + center_crop_tensor(pool4_predict, upsamled2x)
+        upsamled2x_sigmal1 = self.deconv2(sigma1)
+        sigmal2 = upsamled2x_sigmal1 + center_crop_tensor(pool3_predict, upsamled2x_sigmal1)
+        upsampled8x = self.deconv1(sigmal2)
+        return center_crop_tensor(upsampled8x, torch.Tensor(1, 1, img_size[0], img_size[1]))
 
         ######## use Interpolate
-        upsamled2x = F.interpolate(pool5_predict, size_4, mode="bilinear")
-        sigma1 = upsamled2x + pool4_predict
-        upsampled2x_sigmal1 = F.interpolate(sigma1, size_3, mode='bilinear')
-        sigma2 = upsampled2x_sigmal1 + pool3_predict
-        upsampled8x = F.interpolate(sigma2, img_size, mode='bilinear')
-        return upsampled8x
+        # upsamled2x = F.interpolate(pool5_predict, size_4, mode="bilinear")
+        # sigma1 = upsamled2x + pool4_predict
+        # upsampled2x_sigmal1 = F.interpolate(sigma1, size_3, mode='bilinear')
+        # sigma2 = upsampled2x_sigmal1 + pool3_predict
+        # upsampled8x = F.interpolate(sigma2, img_size, mode='bilinear')
+        # return upsampled8x
