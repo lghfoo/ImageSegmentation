@@ -19,25 +19,38 @@ class TrainConfig:
         batch_size = 4,
         epoch_count = 20,
         data_root = './data/camvid',
-        model_path = './model.pth'
+        model_path = './model.pth',
+        optimizer = 'sgd'
     ):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.epoch_count = epoch_count
         self.criterion = validate.CrossEntropyLoss2d()
         self.data_root = data_root
+        self.optimizer = optimizer
         self.model_path = model_path
 
 def train(net, train_config):
     global train_log_file
     train_log_file = open('./train.{}.log.{}.txt'.format(type(net).__name__, time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime())), "a")
     log('******** train begin [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
-    
+    log('learning_rate: {}'.format(train_config.learning_rate))
+    log('batch_size: {}'.format(train_config.batch_size))
+    log('epoch_count: {}'.format(train_config.epoch_count))
+    log('model_path: {}'.format(train_config.model_path))
+    log('optimizer: {}'.format(train_config.optimizer))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
-    # optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
-    # optimizer = optim.SGD(net.parameters(), lr = train_config.learning_rate, momentum=0.9)
-    optimizer = optim.Adadelta(net.parameters(), train_config.learning_rate)
+    optimizer = None
+    if train_config.optimizer == 'adagrad':
+        optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
+    elif train_config.optimizer == 'adadelta':
+        optimizer = optim.Adadelta(net.parameters(), train_config.learning_rate)
+    elif train_config.optimizer == 'sgd':
+        optimizer = optim.SGD(net.parameters(), lr = train_config.learning_rate, momentum=0.9)
+    else:
+        log('unkown optimizer')
+        return
     train_info = []
     best_global_accuracy = None
     ### train config
