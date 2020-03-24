@@ -63,10 +63,10 @@ def train(net, train_config):
     model_path = train_config.model_path
     ### begin train
     for epoch in range(epoch_count):
-        i = 0
+        # i = 0
         train_loss = 0.0
         iter_count = 0
-        for inputs, labels in enumerate(train_dataloader):
+        for i, inputs, labels in enumerate(train_dataloader):
             optimizer.zero_grad()
             outputs = net(inputs)
             loss = criterion(outputs, labels.squeeze(1).long())
