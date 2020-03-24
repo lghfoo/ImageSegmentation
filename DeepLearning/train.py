@@ -30,7 +30,7 @@ class TrainConfig:
 
 def train(net, train_config):
     global train_log_file
-    train_log_file = open('./train.log.txt', "a")
+    train_log_file = open('./train.{}.log.{}.txt'.format(type(net).__name__, time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime())), "a")
     log('******** train begin [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
