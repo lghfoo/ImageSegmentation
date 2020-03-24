@@ -36,6 +36,8 @@ class FCN8s(nn.Module):
         self.conv7 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.relu7 = nn.ReLU()
         self.max_pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.max_pool3_predict = nn.Conv2d(in_channels=256, out_channels=self.num_classes, kernel_size=1, stride=1)
+        self.deconv1 = nn.ConvTranspose2d(in_channels=self.num_classes, out_channels=self.num_classes, kernel_size=16, stride=8)
         # 第八层
         self.conv8 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu8 = nn.ReLU()
@@ -46,6 +48,8 @@ class FCN8s(nn.Module):
         self.conv10 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu10 = nn.ReLU()
         self.max_pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.max_pool4_predict = nn.Conv2d(in_channels=512, out_channels=self.num_classes, kernel_size=1, stride=1)
+        self.deconv2 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2)
         # 第十一层
         self.conv11 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu11 = nn.ReLU()
@@ -68,6 +72,7 @@ class FCN8s(nn.Module):
         self.dropout2 = nn.Dropout()
         # 第三层
         self.fc_conv3 = nn.Conv2d(in_channels=4096, out_channels=self.num_classes, kernel_size=1)
+        self.deconv3 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2)
 
     def forward(self, x):
         img_size = x.size()[2:]
@@ -87,8 +92,7 @@ class FCN8s(nn.Module):
         x = self.relu6(self.conv6(x))
         # c7
         x = self.max_pool3(self.relu7(self.conv7(x))) # 1/8
-        size_8 = x.size()[1:]
-        pool3_predict = x.clone()
+        pool3_predict = self.max_pool3_predict(x)
         
         # c8
         x = self.relu8(self.conv8(x))
@@ -96,8 +100,7 @@ class FCN8s(nn.Module):
         x = self.relu9(self.conv9(x))
         # c10
         x = self.max_pool4(self.relu10(self.conv10(x))) # 1/16
-        size_16 = x.size()[1:]
-        pool4_predict = x.clone()
+        pool4_predict = self.max_pool4_predict(x)
 
         # c11
         x = self.relu11(self.conv11(x))
@@ -111,17 +114,15 @@ class FCN8s(nn.Module):
         # fc2
         x = self.dropout2(self.fc_relu2(self.fc_conv2(x)))
         # fc3
-        x = self.fc_conv3(x)
+        pool5_predict = self.fc_conv3(x)
 
-        upsamled2x = F.interpolate(x, size = size_16)
-        print(size_16)
-        print(x.size())
-        print(upsamled2x.size())
-        print(pool4_predict.size())
+        def center_crop_tensor(t1, t2):
+            (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
+            return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]
+
+        upsamled2x = center_crop_tensor(self.deconv3(pool5_predict), pool4_predict)
         sigma1 = upsamled2x + pool4_predict
-        upsamled2x_sigmal1 = F.interpolate(sigma1, size = size_8)
-        sigma2 = upsamled2x_sigmal1 + pool3_predict
-        final_size = torch.Tensor([x.size()[1], img_size[0], img_size[1]])
-        upsamled8x = F.interpolate(sigma2, size = final_size)
-
-        return upsamled8x
+        upsamled2x_sigmal1 = center_crop_tensor(self.deconv2(sigma1), pool3_predict)
+        sigmal2 = upsamled2x_sigmal1 + pool3_predict
+        upsampled8x = center_crop_tensor(self.deconv1(sigmal2), torch.Tensor(1, 1, img_size[0], img_size[1]))
+        return upsampled8x
