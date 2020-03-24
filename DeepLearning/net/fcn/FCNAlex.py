@@ -74,7 +74,7 @@ class AlexNetFCN(nn.Module):
         self.fc_conv3 = nn.Conv2d(4096, self.num_classes, kernel_size=1)
 
     def forward(self, x):
-        ori_size = x.size()
+        img_size = x.size()[2:]
         x = self.conv1(x)
         x = self.relu1(x)
         x = self.lrn1(x)
@@ -105,7 +105,7 @@ class AlexNetFCN(nn.Module):
 
         x = self.fc_conv3(x)
 
-        x = F.interpolate(x, size = ori_size[2:])
+        x = F.interpolate(x, size = img_size)
         return x
 
 

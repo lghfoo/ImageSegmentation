@@ -1,6 +1,9 @@
 import argparse
 from argparse import RawTextHelpFormatter
 from net.fcn.FCNAlex import AlexNetFCN
+from net.fcn.FCN8s import FCN8s
+from net.fcn.FCN16s import FCN16s
+from net.fcn.FCN32s import FCN32s
 from dataset.CamVid import CamVid
 import train as trainer
 import test as tester
@@ -30,11 +33,11 @@ def net_from_type_string(net_type):
     if net_type == 'fcn_alex':
         return AlexNetFCN(num_classes)
     elif net_type == 'fcn_8s':
-        pass
+        return FCN8s(num_classes)
     elif net_type == 'fcn_16s':
-        pass
+        return FCN16s(num_classes)
     elif net_type == 'fcn_32s':
-        pass
+        return FCN32s(num_classes)
     elif net_type == 'segnet':
         pass
     print('error: unkown net type')
