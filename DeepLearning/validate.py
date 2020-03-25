@@ -43,7 +43,7 @@ class AverageMeter(object):
 # input: net, dataset, batch_size, device, criterion
 # output: global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou
 def validate(net, valset, batch_size, device, criterion):
-    val_dataloader = torch.utils.data.DataLoader(valset, batch_size=4, shuffle=True, num_workers=0)
+    val_dataloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=0)
     intersection_meter = AverageMeter()
     union_meter = AverageMeter()
     target_meter = AverageMeter()
