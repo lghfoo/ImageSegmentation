@@ -115,6 +115,7 @@ def main():
     parser.add_argument('-im', help='input image')
     parser.add_argument('-d', help='data root')
     parser.add_argument('-opt', help='optimizer')
+    parser.add_argument('-ds', help='dataset')
     args = parser.parse_args()
     if args.train is not None:
         train(args)
