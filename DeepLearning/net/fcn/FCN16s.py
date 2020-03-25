@@ -46,7 +46,7 @@ class FCN16s(nn.Module):
         self.relu10 = nn.ReLU()
         self.max_pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.max_pool4_predict = nn.Conv2d(in_channels=512, out_channels=self.num_classes, kernel_size=1, stride=1)
-        self.deconv1 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2, bias=False)
+        self.deconv1 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=32, stride=16, bias=False)
         # 第十一层
         self.conv11 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu11 = nn.ReLU()
@@ -69,7 +69,7 @@ class FCN16s(nn.Module):
         self.dropout2 = nn.Dropout()
         # 第三层
         self.fc_conv3 = nn.Conv2d(in_channels=4096, out_channels=self.num_classes, kernel_size=1)
-        self.deconv2 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=32, stride=16, bias=False)
+        self.deconv2 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2, bias=False)
         self.initialize_weights()
 
     def initialize_weights(self):
@@ -117,8 +117,8 @@ class FCN16s(nn.Module):
             weight = np.zeros((in_channels, out_channels, kernel_size, kernel_size), dtype='float32')
             weight[range(in_channels), range(out_channels), :, :] = filt
             return torch.from_numpy(weight)
-        self.deconv1.weight.data = bilinear_kernel(self.num_classes, self.num_classes, 4)
-        self.deconv2.weight.data = bilinear_kernel(self.num_classes, self.num_classes, 32)
+        self.deconv1.weight.data = bilinear_kernel(self.num_classes, self.num_classes, 32)
+        self.deconv2.weight.data = bilinear_kernel(self.num_classes, self.num_classes, 4)
 
 
     def forward(self, x):
