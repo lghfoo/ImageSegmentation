@@ -188,7 +188,6 @@ class FCN8s(nn.Module):
         # fc3
         pool5_predict = self.fc_conv3(x)
 
-        ######## use Deconv
         def center_crop_tensor(t1, t2):
             (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
             return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]

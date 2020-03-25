@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import numpy as np
 
 class FCN32s(nn.Module):
     def __init__(self, num_classes):
@@ -66,6 +67,57 @@ class FCN32s(nn.Module):
         self.dropout2 = nn.Dropout()
         # 第三层
         self.fc_conv3 = nn.Conv2d(in_channels=4096, out_channels=self.num_classes, kernel_size=1)
+        self.deconv = nn.ConvTranspose2d(in_channels=self.num_classes, out_channels=self.num_classes, kernel_size=64, stride=32)
+
+    def initialize_weights(self):
+        vgg16 = torchvision.models.vgg16(pretrained=True)
+        self.conv1.weight.data = vgg16.features[0].weight.data.clone()
+        self.conv2.weight.data = vgg16.features[2].weight.data.clone()
+        self.conv3.weight.data = vgg16.features[5].weight.data.clone()
+        self.conv4.weight.data = vgg16.features[7].weight.data.clone()
+        self.conv5.weight.data = vgg16.features[10].weight.data.clone()
+        self.conv6.weight.data = vgg16.features[12].weight.data.clone()
+        self.conv7.weight.data = vgg16.features[14].weight.data.clone()
+        self.conv8.weight.data = vgg16.features[17].weight.data.clone()
+        self.conv9.weight.data = vgg16.features[19].weight.data.clone()
+        self.conv10.weight.data = vgg16.features[21].weight.data.clone()
+        self.conv11.weight.data = vgg16.features[24].weight.data.clone()
+        self.conv12.weight.data = vgg16.features[26].weight.data.clone()
+        self.conv13.weight.data = vgg16.features[28].weight.data.clone()
+
+        self.conv1.bias.data = vgg16.features[0].bias.data.clone()
+        self.conv2.bias.data = vgg16.features[2].bias.data.clone()
+        self.conv3.bias.data = vgg16.features[5].bias.data.clone()
+        self.conv4.bias.data = vgg16.features[7].bias.data.clone()
+        self.conv5.bias.data = vgg16.features[10].bias.data.clone()
+        self.conv6.bias.data = vgg16.features[12].bias.data.clone()
+        self.conv7.bias.data = vgg16.features[14].bias.data.clone()
+        self.conv8.bias.data = vgg16.features[17].bias.data.clone()
+        self.conv9.bias.data = vgg16.features[19].bias.data.clone()
+        self.conv10.bias.data = vgg16.features[21].bias.data.clone()
+        self.conv11.bias.data = vgg16.features[24].bias.data.clone()
+        self.conv12.bias.data = vgg16.features[26].bias.data.clone()
+        self.conv13.bias.data = vgg16.features[28].bias.data.clone()
+
+
+        def bilinear_kernel(in_channels, out_channels, kernel_size):
+            '''
+            return a bilinear filter tensor
+            '''
+            factor = (kernel_size + 1) // 2
+            if kernel_size % 2 == 1:
+                center = factor - 1
+            else:
+                center = factor - 0.5
+            og = np.ogrid[:kernel_size, :kernel_size]
+            filt = (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
+            weight = np.zeros((in_channels, out_channels, kernel_size, kernel_size), dtype='float32')
+            weight[range(in_channels), range(out_channels), :, :] = filt
+            return torch.from_numpy(weight)
+
+        self.deconv.weight.data = bilinear_kernel(self.num_classes, self.num_classes, 64)
+
+
 
     def forward(self, x):
         img_size = x.size()[2:]
@@ -107,5 +159,9 @@ class FCN32s(nn.Module):
         # fc3
         x = self.fc_conv3(x)
 
-        x = F.interpolate(x, size = img_size)
-        return x
+        def center_crop_tensor(t1, t2):
+            (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
+            return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]
+        
+        upsampled16x = self.deconv(x)
+        return center_crop_tensor(upsampled16x, torch.Tensor(1, 1, img_size[0], img_size[1]))
