@@ -5,6 +5,8 @@ from dataset import CamVid
 import numpy as np
 import validate
 import time
+import os
+import errno
 
 train_log_file = None
 def log(msg):
@@ -37,7 +39,14 @@ class TrainConfig:
 
 def train(net, train_config):
     global train_log_file
-    train_log_file = open('./train.{}.log.{}.txt'.format(type(net).__name__, time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime())), "a")
+    train_filename = './log/train/{}.{}.txt'.format(type(net).__name__, time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime()))
+    if not os.path.exists(os.path.dirname(train_filename)):
+        try:
+            os.makedirs(os.path.dirname(train_filename))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+    train_log_file = open(train_filename, "w")
     log('******** train begin [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
     log('learning_rate: {}'.format(train_config.learning_rate))
     log('batch_size: {}'.format(train_config.batch_size))
@@ -45,6 +54,7 @@ def train(net, train_config):
     log('model_path: {}'.format(train_config.model_path))
     log('trained_model_path: {}'.format(train_config.trained_model_path))
     log('optimizer: {}'.format(train_config.optimizer))
+    log('dataset: {}'.format(train_config.dataset))
     if train_config.trained_model_path is not None:
         net.load_state_dict(torch.load(train_config.trained_model_path))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

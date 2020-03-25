@@ -1,6 +1,8 @@
 import validate
 import torch
 import time
+import os
+import errno
 
 test_log_file = None
 def log(msg):
@@ -21,7 +23,14 @@ class TestConfig:
 
 def test(net, test_config):
     global test_log_file
-    test_log_file = open('./test.{}.log.{}.txt'.format(type(net).__name__, time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime())), "a")
+    test_filename = './log/test/{}.{}.txt'.format(type(net).__name__, time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime()))
+    if not os.path.exists(os.path.dirname(test_filename)):
+        try:
+            os.makedirs(os.path.dirname(test_filename))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+    train_log_file = open(test_filename, "w")
     log('******** test begin [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
     
     net.load_state_dict(torch.load(test_config.model_path))
