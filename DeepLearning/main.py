@@ -10,7 +10,7 @@ import test as tester
 import predict as predictor
 
 detail_usage = """
-train model: -train net_to_train -o saved_model_path -l learning_rate -e epoch_count -b batch_size -d data_root -opt optimizer
+train model: -train net_to_train -o saved_model_path -l learning_rate -e epoch_count -b batch_size -d data_root -opt optimizer -i trained_model_path
 test model: -test net_to_test -i model_path -b batch_size -d data_root
 predict: -predict net_to_predict -i model_path -im input_image -o output_image
 
@@ -30,7 +30,7 @@ optimizer: [
 ]
 
 examples:
-    -train fcn_alex -o './fcn_alex.pth' -l 0.01 -e 20 -b 4 -d './data/camvid' -opt sgd
+    -train fcn_alex -o './fcn_alex.pth' -l 0.01 -e 20 -b 4 -d './data/camvid' -opt sgd -i './trained_fcn_alex.pth'
     -train fcn_8s -o './fcn_8s.pth' -l 0.01 -e 80 -b 4 -d './data/camvid' -opt sgd
     -test fcn_alex -i './fcn_alex.pth' -b 4 -d './data/camvid'
     -predict fcn_alex -i './fcn_alex.pth' -im 'xxxxx.png' -o 'xxxxx_seged.png'
@@ -66,6 +66,8 @@ def train(args):
         config.data_root = args.d
     if args.opt is not None:
         config.optimizer = args.opt
+    if args.i is not None:
+        config.trained_model_path = args.i
     trainer.train(net, config)
 
 def test(args):

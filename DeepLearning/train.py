@@ -20,6 +20,7 @@ class TrainConfig:
         epoch_count = 20,
         data_root = './data/camvid',
         model_path = './model.pth',
+        trained_model_path = None,
         optimizer = 'sgd'
     ):
         self.learning_rate = learning_rate
@@ -28,6 +29,7 @@ class TrainConfig:
         self.criterion = validate.CrossEntropyLoss2d()
         self.data_root = data_root
         self.optimizer = optimizer
+        self.trained_model_path = trained_model_path
         self.model_path = model_path
 
 def train(net, train_config):
@@ -38,7 +40,10 @@ def train(net, train_config):
     log('batch_size: {}'.format(train_config.batch_size))
     log('epoch_count: {}'.format(train_config.epoch_count))
     log('model_path: {}'.format(train_config.model_path))
+    log('trained_model_path: {}'.format(train_config.trained_model_path))
     log('optimizer: {}'.format(train_config.optimizer))
+    if train_config.trained_model_path is not None:
+        net.load_state_dict(torch.load(train_config.trained_model_path))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
     optimizer = None
