@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from dataset import CamVid
-from dataset import CamVid11
 import numpy as np
 import validate
 import time
