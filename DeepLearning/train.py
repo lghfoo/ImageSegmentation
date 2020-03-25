@@ -59,8 +59,8 @@ def train(net, train_config):
     batch_size = train_config.batch_size
     epoch_count = train_config.epoch_count
     trainset = CamVid.CamVid(root=train_config.data_root, split='train')
-    train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=0)
     valset = CamVid.CamVid(root=train_config.data_root, split='val')
+    train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=0)
     criterion = train_config.criterion
     model_path = train_config.model_path
     ### begin train

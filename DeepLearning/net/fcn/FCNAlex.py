@@ -72,6 +72,26 @@ class AlexNetFCN(nn.Module):
         self.drop2 = nn.Dropout2d()
 
         self.fc_conv3 = nn.Conv2d(4096, self.num_classes, kernel_size=1)
+        self.deconv = nn.ConvTranspose2d(self.num_classes, self.num_classes, 63, 32, bias=False)
+
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        def bilinear_kernel(in_channels, out_channels, kernel_size):
+            '''
+            return a bilinear filter tensor
+            '''
+            factor = (kernel_size + 1) // 2
+            if kernel_size % 2 == 1:
+                center = factor - 1
+            else:
+                center = factor - 0.5
+            og = np.ogrid[:kernel_size, :kernel_size]
+            filt = (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
+            weight = np.zeros((in_channels, out_channels, kernel_size, kernel_size), dtype='float32')
+            weight[range(in_channels), range(out_channels), :, :] = filt
+            return torch.from_numpy(weight)
+        self.deconv.weight.data = bilinear_kernel(self.num_classes, self.num_classes, 63)
 
     def forward(self, x):
         img_size = x.size()[2:]
@@ -105,8 +125,13 @@ class AlexNetFCN(nn.Module):
 
         x = self.fc_conv3(x)
 
-        x = F.interpolate(x, size = img_size)
-        return x
+        # x = F.interpolate(x, size = img_size)
+        x = self.deconv(x)
+
+        def center_crop_tensor(t1, t2):
+            (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
+            return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]
+        return center_crop_tensor(x, torch.Tensor(1, 1, img_size[0], img_size[1]))
 
 
 
