@@ -143,6 +143,7 @@ class CamVid11(VisionDataset):
         CamVidClass('Car', 8),
         CamVidClass('Pedestrian', 9),
         CamVidClass('Bicyclist', 10),
+        CamVidClass('Unlabelled', 11)
     ]
 
     def __init__(self, root, split='train', transform=torchvision.transforms.Compose([
