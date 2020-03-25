@@ -5,14 +5,15 @@ from net.fcn.FCN8s import FCN8s
 from net.fcn.FCN16s import FCN16s
 from net.fcn.FCN32s import FCN32s
 from dataset.CamVid import CamVid
+from dataset.CamVid import CamVid11
 import train as trainer
 import test as tester
 import predict as predictor
 
 detail_usage = """
-train model: -train net_to_train -o saved_model_path -l learning_rate -e epoch_count -b batch_size -d data_root -opt optimizer -i trained_model_path
-test model: -test net_to_test -i model_path -b batch_size -d data_root
-predict: -predict net_to_predict -i model_path -im input_image -o output_image
+train model: -train net_to_train -o saved_model_path -l learning_rate -e epoch_count -b batch_size -d data_root -opt optimizer -i trained_model_path -ds dataset
+test model: -test net_to_test -i model_path -b batch_size -d data_root -ds dataset
+predict: -predict net_to_predict -i model_path -im input_image -o output_image -ds dataset
 
 net_to_train/test/predict: [
     fcn_alex,
@@ -29,15 +30,19 @@ optimizer: [
     adam
 ]
 
+dataset: [
+    camvid,
+    camvid11
+]
+
 examples:
-    -train fcn_alex -o './fcn_alex.pth' -l 0.01 -e 20 -b 4 -d './data/camvid' -opt sgd -i './trained_fcn_alex.pth'
-    -train fcn_8s -o './fcn_8s.pth' -l 0.01 -e 80 -b 4 -d './data/camvid' -opt sgd
-    -test fcn_alex -i './fcn_alex.pth' -b 4 -d './data/camvid'
-    -predict fcn_alex -i './fcn_alex.pth' -im 'xxxxx.png' -o 'xxxxx_seged.png'
+    -train fcn_alex -o './fcn_alex.pth' -l 0.01 -e 20 -b 4 -d './data/camvid' -opt sgd -i './trained_fcn_alex.pth' -ds 'camvid11'
+    -train fcn_8s -o './fcn_8s.pth' -l 0.01 -e 80 -b 4 -d './data/camvid' -opt sgd -ds 'camvid11'
+    -test fcn_alex -i './fcn_alex.pth' -b 4 -d './data/camvid' -ds 'camvid11'
+    -predict fcn_alex -i './fcn_alex.pth' -im 'xxxxx.png' -o 'xxxxx_seged.png' -ds 'camvid11'
 """
 
-def net_from_type_string(net_type):
-    num_classes = len(CamVid.classes)
+def net_from_type_string(net_type, num_classes):
     if net_type == 'fcn_alex':
         return AlexNetFCN(num_classes)
     elif net_type == 'fcn_8s':
@@ -51,8 +56,16 @@ def net_from_type_string(net_type):
     print('error: unkown net type')
     return None
 
+def get_num_classes(dataset):
+    if dataset is None or dataset == 'camvid11':
+        return len(CamVid11.classes)
+    if dataset == 'camvid':
+        return len(CamVid.classes)
+    print('error: unkown dataset')
+    return 0
+
 def train(args):
-    net = net_from_type_string(args.train)
+    net = net_from_type_string(args.train, get_num_classes(args.ds))
     config = trainer.TrainConfig()
     if args.o is not None:
         config.model_path = args.o
@@ -68,10 +81,12 @@ def train(args):
         config.optimizer = args.opt
     if args.i is not None:
         config.trained_model_path = args.i
+    if args.ds is not None:
+        config.dataset = args.ds
     trainer.train(net, config)
 
 def test(args):
-    net = net_from_type_string(args.test)
+    net = net_from_type_string(args.test, get_num_classes(args.ds))
     config = tester.TestConfig()
     if args.i is not None:
         config.model_path = args.i
@@ -82,7 +97,7 @@ def test(args):
     tester.test(net, config)
 
 def predict(args):
-    net = net_from_type_string(args.predict)
+    net = net_from_type_string(args.predict, get_num_classes(args.ds))
     assert args.i is not None and args. im is not None and args.o is not None
     net.load_state_dict(torch.load(args.i))
     predictor.predict(net, args.im, args.o)

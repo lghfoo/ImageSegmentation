@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from dataset import CamVid
 class CrossEntropyLoss2d(nn.Module):
     def __init__(self, weight=None, ignore_index=255, reduction='mean'):
         super(CrossEntropyLoss2d, self).__init__()
@@ -39,6 +40,20 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
+def get_dataset(dataset, split, data_root):
+    if dataset == 'camvid':
+        return CamVid.CamVid(root=data_root, split=split)
+    if dataset == 'camvid11':
+        return CamVid.CamVid11(root=data_root, split=split)
+    print('error: unkown dataset')
+
+def get_dataset_classes(dataset):
+    if dataset == 'camvid':
+        return CamVid.CamVid.classes
+    if dataset == 'camvid11':
+        return CamVid.CamVid11.classes
+    print('error: unkown dataset')
 
 # input: net, dataset, batch_size, device, criterion
 # output: global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou

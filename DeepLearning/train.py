@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from dataset import CamVid
+from dataset import CamVid11
 import numpy as np
 import validate
 import time
@@ -21,7 +22,8 @@ class TrainConfig:
         data_root = './data/camvid',
         model_path = './model.pth',
         trained_model_path = None,
-        optimizer = 'sgd'
+        optimizer = 'sgd',
+        dataset = 'camvid11'
     ):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -31,6 +33,8 @@ class TrainConfig:
         self.optimizer = optimizer
         self.trained_model_path = trained_model_path
         self.model_path = model_path
+        self.dataset = dataset
+
 
 def train(net, train_config):
     global train_log_file
@@ -63,8 +67,8 @@ def train(net, train_config):
     ### train config
     batch_size = train_config.batch_size
     epoch_count = train_config.epoch_count
-    trainset = CamVid.CamVid(root=train_config.data_root, split='train')
-    valset = CamVid.CamVid(root=train_config.data_root, split='val')
+    trainset = validate.get_dataset(train_config.dataset, 'train', train_config.data_root)
+    valset = validate.get_dataset(train_config.dataset, 'val', train_config.data_root)
     train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=0)
     criterion = train_config.criterion
     model_path = train_config.model_path
@@ -102,7 +106,7 @@ def train(net, train_config):
         log("val_loss: " + str(val_loss))
         train_info.append((mIoU, classes_avg_accuracy, global_accuracy, train_loss, val_loss))
         for i in range(net.num_classes):
-            log('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, classes_iou[i], classes_accuracy[i], CamVid.CamVid.classes[i]))
+            log('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, classes_iou[i], classes_accuracy[i], validate.get_dataset_classes(train_config.dataset)))
 
     for epoch in range(epoch_count):
         mIoU, classes_avg_accuracy, global_accuracy, train_loss, val_loss = train_info[epoch]
