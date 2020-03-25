@@ -169,6 +169,8 @@ class FCN16s(nn.Module):
         
 
         upsamled2x = self.deconv2(pool5_predict)
+        print(pool4_predict.size())
+        print(upsamled2x.size())
         sigma1 = center_crop_tensor(pool4_predict, upsamled2x) + upsamled2x
         upsamled16x = self.deconv1(sigma1)
         return center_crop_tensor(upsamled16x, torch.Tensor(1, 1, img_size[0], img_size[1]))
