@@ -1,5 +1,6 @@
 import argparse
 from argparse import RawTextHelpFormatter
+import torch
 from net.fcn.FCNAlex import AlexNetFCN
 from net.fcn.FCN8s import FCN8s
 from net.fcn.FCN16s import FCN16s
