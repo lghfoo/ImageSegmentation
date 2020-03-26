@@ -18,20 +18,25 @@ def predict(net, input_image_path, output_image_path):
                 raise
     if output_image_path is None:
         output_image_path = os.path.join(predict_dir, input_without_ext + '_predicted.png')
-
+    log_file = open(os.path.join(predict_dir, 'log.txt'), "w")
     img = Image.open(input_image_path)
     input_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
     img_tensor = input_transform(img).unsqueeze(0)
-
+    #### predict ####
+    beg = time.time()
     outputs = net(img_tensor)
-
+    end = time.time()
+    log_file.write('time elapsed: {:.3f}'.format((end-beg)*1000))
     _, pred = torch.max(outputs, 1)
     result = pred.squeeze(0).numpy()
+    #### convert result to img ####
     output_img = Image.fromarray(np.uint8(result))
+    #### save result ####
     output_img.save(output_image_path)
     bak_input_path = os.path.join(predict_dir, input_without_ext + '.png')
     if not os.path.exists(bak_input_path):
         shutil.copy(input_image_path, bak_input_path)
+    log_file.close()
