@@ -10,6 +10,7 @@ from dataset.CamVid import CamVid11
 import train as trainer
 import test as tester
 import predict as predictor
+import validate
 
 detail_usage = """
 train model: -train net_to_train -o saved_model_path -l learning_rate -e epoch_count -b batch_size -d data_root -opt optimizer -i trained_model_path -ds dataset
@@ -104,7 +105,7 @@ def predict(args):
     assert args.i is not None and args. im is not None and args.ds is not None
     net = net_from_type_string(args.predict, get_num_classes(args.ds))
     net.load_state_dict(torch.load(args.i))
-    predictor.predict(net, args.im, args.o)
+    predictor.predict(net, args.im, args.o, validate.get_dataset_classes(args.ds))
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, epilog=detail_usage)

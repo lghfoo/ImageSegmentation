@@ -3,7 +3,6 @@ import torch
 import time
 import os
 import errno
-
 test_log_file = None
 def log(msg):
     global test_log_file

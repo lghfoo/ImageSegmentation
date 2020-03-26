@@ -8,7 +8,7 @@ import errno
 import shutil
 import torch
 
-def predict(net, input_image_path, output_image_path):
+def predict(net, input_image_path, output_image_path, classes):
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
     predict_dir = './predict_results/{}/{}/'.format(type(net).__name__, input_without_ext)
     if not os.path.exists(predict_dir):
@@ -32,7 +32,17 @@ def predict(net, input_image_path, output_image_path):
     end = time.time()
     log_file.write('time elapsed: {:.3f}'.format((end-beg)*1000))
     _, pred = torch.max(outputs, 1)
-    result = pred.squeeze(0).numpy()
+    gray_result = pred.squeeze(0)
+    
+    r_channel = gray_result.clone()
+    g_channel = gray_result.clone()
+    b_channel = gray_result.clone()
+    for category in classes:
+        r_channel[r_channel==category.id] = category.color[0]
+        g_channel[g_channel==category.id] = category.color[1]
+        b_channel[b_channel==category.id] = category.color[2]
+
+    result = torch.stack((r_channel, g_channel, b_channel))
     #### convert result to img ####
     output_img = Image.fromarray(np.uint8(result))
     #### save result ####

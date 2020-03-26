@@ -33,41 +33,41 @@ class CamVid(VisionDataset):
             img, smnt = dataset[0]
     """
 
-    CamVidClass = namedtuple('CamVidClass', ['name', 'id'])
+    CamVidClass = namedtuple('CamVidClass', ['name', 'id', 'color'])
 
     classes = [
-        CamVidClass('Animal', 0),
-        CamVidClass('Archway', 1),
-        CamVidClass('Bicyclist', 2),
-        CamVidClass('Bridge', 3),
-        CamVidClass('Building', 4),
-        CamVidClass('Car', 5),
-        CamVidClass('CartLuggagePram', 6),
-        CamVidClass('Child', 7),
-        CamVidClass('Column_Pole', 8),
-        CamVidClass('Fence', 9),
-        CamVidClass('LaneMkgsDriv', 10),
-        CamVidClass('LaneMkgsNonDriv', 11),
-        CamVidClass('Misc_Text', 12),
-        CamVidClass('MotorcycleScooter', 13),
-        CamVidClass('OtherMoving', 14),
-        CamVidClass('ParkingBlock', 15),
-        CamVidClass('Pedestrian', 16),
-        CamVidClass('Road', 17),
-        CamVidClass('RoadShoulder', 18),
-        CamVidClass('Sidewalk', 19),
-        CamVidClass('SignSymbol', 20),
-        CamVidClass('Sky', 21),
-        CamVidClass('SUVPickupTruck', 22),
-        CamVidClass('TrafficCone', 23),
-        CamVidClass('TrafficLight', 24),
-        CamVidClass('Train', 25),
-        CamVidClass('Tree', 26),
-        CamVidClass('Truck_Bus', 27),
-        CamVidClass('Tunnel', 28),
-        CamVidClass('VegetationMisc', 29),
-        CamVidClass('Void', 30),
-        CamVidClass('Wall', 31),
+        CamVidClass('Animal', 0, (64, 128, 64)),
+        CamVidClass('Archway', 1, (192, 0, 128)),
+        CamVidClass('Bicyclist', 2, (0, 128, 192)),
+        CamVidClass('Bridge', 3, (0, 128, 64)),
+        CamVidClass('Building', 4, (128, 0, 0)),
+        CamVidClass('Car', 5, (64, 0, 128)),
+        CamVidClass('CartLuggagePram', 6, (64, 0, 192)),
+        CamVidClass('Child', 7, (192, 128, 64)),
+        CamVidClass('Column_Pole', 8, (192, 192, 128)),
+        CamVidClass('Fence', 9, (64, 64, 128)),
+        CamVidClass('LaneMkgsDriv', 10, (128, 0, 192)),
+        CamVidClass('LaneMkgsNonDriv', 11, (192, 0, 64)),
+        CamVidClass('Misc_Text', 12, (128, 128, 64)),
+        CamVidClass('MotorcycleScooter', 13, (192, 0, 192)),
+        CamVidClass('OtherMoving', 14, (128, 64, 64)),
+        CamVidClass('ParkingBlock', 15, (64, 192, 128)),
+        CamVidClass('Pedestrian', 16, (64, 64, 0)),
+        CamVidClass('Road', 17, (128, 64, 128)),
+        CamVidClass('RoadShoulder', 18, (128, 128, 192)),
+        CamVidClass('Sidewalk', 19, (0, 0, 192)),
+        CamVidClass('SignSymbol', 20, (192, 128, 128)),
+        CamVidClass('Sky', 21, (128, 128, 128)),
+        CamVidClass('SUVPickupTruck', 22, (64, 128, 192)),
+        CamVidClass('TrafficCone', 23, (0, 0, 64)),
+        CamVidClass('TrafficLight', 24, (0, 64, 64)),
+        CamVidClass('Train', 25, (192, 64, 128)),
+        CamVidClass('Tree', 26, (128, 128, 0)),
+        CamVidClass('Truck_Bus', 27, (192, 128, 192)),
+        CamVidClass('Tunnel', 28, (64, 0, 64)),
+        CamVidClass('VegetationMisc', 29, (192, 192, 0)),
+        CamVidClass('Void', 30, (0, 0, 0)),
+        CamVidClass('Wall', 31, (64, 192, 0))
     ]
 
     def __init__(self, root, split='train', transform=torchvision.transforms.Compose([
@@ -129,21 +129,21 @@ class CamVid11(VisionDataset):
             img, smnt = dataset[0]
     """
 
-    CamVidClass = namedtuple('CamVidClass', ['name', 'id'])
+    CamVidClass = namedtuple('CamVidClass', ['name', 'id', 'color'])
     #[Sky, Building, Pole, Road, Pavement, Tree, SignSymbol, Fence, Car, Pedestrian, Bicyclist, Unlabelled]
     classes = [
-        CamVidClass('Sky', 0),
-        CamVidClass('Building', 1),
-        CamVidClass('Column_Pole', 2),
-        CamVidClass('Road', 3),
-        CamVidClass('Sidewalk', 4),
-        CamVidClass('Tree', 5),
-        CamVidClass('SignSymbol', 6),
-        CamVidClass('Fence', 7),
-        CamVidClass('Car', 8),
-        CamVidClass('Pedestrian', 9),
-        CamVidClass('Bicyclist', 10),
-        CamVidClass('Unlabelled', 11)
+        CamVidClass('Sky', 0, (128,128,128)),
+        CamVidClass('Building', 1, (128,0,0)),
+        CamVidClass('Column_Pole', 2, (192,192,128)),
+        CamVidClass('Road', 3, (128,64,128)),
+        CamVidClass('Sidewalk', 4, (60,40,222)),
+        CamVidClass('Tree', 5, (128,128,0)),
+        CamVidClass('SignSymbol', 6, (192,128,128)),
+        CamVidClass('Fence', 7, (64,64,128)),
+        CamVidClass('Car', 8, (64,0,128)),
+        CamVidClass('Pedestrian', 9, (64,64,0)),
+        CamVidClass('Bicyclist', 10, (0,128,192)),
+        CamVidClass('Unlabelled', 11, (0,0,0))
     ]
 
     def __init__(self, root, split='train', transform=torchvision.transforms.Compose([
