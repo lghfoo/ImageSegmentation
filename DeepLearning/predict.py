@@ -19,7 +19,7 @@ def predict(net, input_image_path, output_image_path, classes):
                 raise
     if output_image_path is None:
         output_image_path = os.path.join(predict_dir, input_without_ext + '_predicted.png')
-    log_file = open(os.path.join(predict_dir, 'log.txt'), "w")
+    log_file = open(os.path.join(predict_dir, 'log.{}.txt'.format(time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime()))), "a")
     img = Image.open(input_image_path)
     input_transform = transforms.Compose([
         transforms.ToTensor(),
