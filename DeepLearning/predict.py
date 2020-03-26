@@ -30,7 +30,7 @@ def predict(net, input_image_path, output_image_path, classes):
     beg = time.time()
     outputs = net(img_tensor)
     end = time.time()
-    log_file.write('time elapsed: {:.3f}'.format((end-beg)*1000))
+    log_file.write('input: {}\ntime elapsed: {:.3f} ms\n\n'.format(input_image_path, (end-beg)*1000))
     _, pred = torch.max(outputs, 1)
     gray_result = pred.squeeze(0)
     
@@ -54,4 +54,4 @@ def predict(net, input_image_path, output_image_path, classes):
     if not os.path.exists(bak_input_path):
         shutil.copy(input_image_path, bak_input_path)
     log_file.close()
-    print('finished predicting {}'.format(os.path.basename(input_image_path)))
+    print('finished predicting {}, use {} ms'.format(os.path.basename(input_image_path), (end-beg)*1000))
