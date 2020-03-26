@@ -99,7 +99,7 @@ def test(args):
     tester.test(net, config)
 
 def predict(args):
-    assert args.i is not None and args. im is not None and args.o is not None and args.ds is not None
+    assert args.i is not None and args. im is not None and args.ds is not None
     net = net_from_type_string(args.predict, get_num_classes(args.ds))
     net.load_state_dict(torch.load(args.i))
     predictor.predict(net, args.im, args.o)
