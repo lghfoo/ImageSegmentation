@@ -5,6 +5,7 @@ import torch
 import time
 import os
 import errno
+import shutil
 
 def predict(net, input_image_path, output_image_path):
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
@@ -31,3 +32,6 @@ def predict(net, input_image_path, output_image_path):
     result = pred.squeeze(0).numpy()
     output_img = Image.fromarray(np.uint8(result))
     output_img.save(output_image_path)
+    bak_input_path = os.path.join(predict_dir, input_without_ext + '.png')
+    if not os.path.exists(bak_input_path):
+        shutil.copy(input_image_path, bak_input_path)
