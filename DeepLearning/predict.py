@@ -6,6 +6,7 @@ import time
 import os
 import errno
 import shutil
+import torch
 
 def predict(net, input_image_path, output_image_path):
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
@@ -40,3 +41,4 @@ def predict(net, input_image_path, output_image_path):
     if not os.path.exists(bak_input_path):
         shutil.copy(input_image_path, bak_input_path)
     log_file.close()
+    print('finished')
