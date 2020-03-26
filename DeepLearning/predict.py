@@ -34,15 +34,22 @@ def predict(net, input_image_path, output_image_path, classes):
     _, pred = torch.max(outputs, 1)
     gray_result = pred.squeeze(0)
     
-    r_channel = gray_result.clone()
-    g_channel = gray_result.clone()
-    b_channel = gray_result.clone()
+    print(gray_result.size())
+    r_channel = gray_result.clone().squeeze(0)
+    g_channel = gray_result.clone().squeeze(0)
+    b_channel = gray_result.clone().squeeze(0)
+    print(r_channel.size())
     for category in classes:
         r_channel[r_channel==category.id] = category.color[0]
         g_channel[g_channel==category.id] = category.color[1]
         b_channel[b_channel==category.id] = category.color[2]
 
+    # rgb_array = np.zeros((gray_result.size()), 'uint8')
+    # r_channel = np.uint8(r_channel)
+    # g_channel = np.uint8(g_channel)
+    # b_channel = np.uint8(b_channel)
     result = torch.stack((r_channel, g_channel, b_channel))
+    print(result.size())
     #### convert result to img ####
     output_img = Image.fromarray(np.uint8(result))
     #### save result ####
