@@ -54,4 +54,4 @@ def predict(net, input_image_path, output_image_path, classes):
     if not os.path.exists(bak_input_path):
         shutil.copy(input_image_path, bak_input_path)
     log_file.close()
-    print('finished')
+    print('finished predicting {}'.format(os.path.basename(input_image_path)))
