@@ -138,7 +138,7 @@ def main():
     parser.add_argument('-d', help='data root')
     parser.add_argument('-opt', help='optimizer')
     parser.add_argument('-ds', help='dataset')
-    parser.add_argument('iml', help='input images list file to predict')
+    parser.add_argument('-iml', help='input images list file to predict')
     args = parser.parse_args()
     if args.train is not None:
         train(args)
