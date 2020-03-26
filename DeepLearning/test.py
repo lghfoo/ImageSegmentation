@@ -30,8 +30,10 @@ def test(net, test_config):
         except OSError as exc: # Guard against race condition
             if exc.errno != errno.EEXIST:
                 raise
-    train_log_file = open(test_filename, "w")
+    test_log_file = open(test_filename, "w")
     log('******** test begin [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
+    log('batch_size: {}'.format(test_config.batch_size))
+    log('model_path: {}'.format(test_config.model_path))
     
     net.load_state_dict(torch.load(test_config.model_path))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
