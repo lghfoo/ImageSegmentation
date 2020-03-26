@@ -14,12 +14,14 @@ class TestConfig:
     def __init__(self, 
         batch_size = 4,
         data_root = './data/camvid',
-        model_path = './model.pth'
+        model_path = './model.pth',
+        dataset = 'camvid11'
     ):
         self.batch_size = batch_size
         self.criterion = validate.CrossEntropyLoss2d()
         self.data_root = data_root
         self.model_path = model_path
+        self.dataset = dataset
 
 def test(net, test_config):
     global test_log_file
