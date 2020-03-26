@@ -35,23 +35,25 @@ def predict(net, input_image_path, output_image_path, classes):
     gray_result = pred.squeeze(0)
     
     print(gray_result.size())
-    r_channel = gray_result.clone().squeeze(0)
-    g_channel = gray_result.clone().squeeze(0)
-    b_channel = gray_result.clone().squeeze(0)
-    print(r_channel.size())
+    r_channel = gray_result.clone()
+    g_channel = gray_result.clone()
+    b_channel = gray_result.clone()
     for category in classes:
         r_channel[r_channel==category.id] = category.color[0]
         g_channel[g_channel==category.id] = category.color[1]
         b_channel[b_channel==category.id] = category.color[2]
 
-    # rgb_array = np.zeros((gray_result.size()), 'uint8')
-    # r_channel = np.uint8(r_channel)
-    # g_channel = np.uint8(g_channel)
-    # b_channel = np.uint8(b_channel)
-    result = torch.stack((r_channel, g_channel, b_channel))
-    print(result.size())
+    rgb_array = np.zeros((gray_result.size()[0], gray_result.size()[1], 3), 'uint8')
+    r_channel = np.uint8(r_channel)
+    g_channel = np.uint8(g_channel)
+    b_channel = np.uint8(b_channel)
+    rgb_array[..., 0] = r_channel
+    rgb_array[..., 1] = g_channel
+    rgb_array[..., 2] = b_channel
+    # result = torch.stack((r_channel, g_channel, b_channel))
     #### convert result to img ####
-    output_img = Image.fromarray(np.uint8(result))
+    # output_img = Image.fromarray(np.uint8(result))
+    output_img = Image.fromarray(rgb_array)
     #### save result ####
     output_img.save(output_image_path)
     bak_input_path = os.path.join(predict_dir, input_without_ext + '.png')
