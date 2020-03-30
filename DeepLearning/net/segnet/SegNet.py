@@ -8,9 +8,9 @@ import sys
 import argparse
 import numpy as np
 
-class FCN8s(nn.Module):
+class SegNet(nn.Module):
     def __init__(self, num_classes):
-        super(FCN8s, self).__init__()
+        super(SegNet, self).__init__()
         self.num_classes = num_classes
         # 卷积层
         # 第一层
