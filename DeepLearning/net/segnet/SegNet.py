@@ -252,7 +252,7 @@ class SegNet(nn.Module):
         x = self.upsample1(x, indices1, output_size=size1)
         x = self.decode_relu2(self.decode_bn2(self.decode_conv2(x)))
         # decode-c1
-        x = self.decode_relu1(self.decode_bn1(self.decode_conv1(x)))
+        x = self.decode_conv1(x)
 
         return x
 
