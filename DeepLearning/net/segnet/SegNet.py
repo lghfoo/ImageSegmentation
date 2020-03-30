@@ -184,11 +184,13 @@ class SegNet(nn.Module):
         # c1
         x = self.relu1(self.bn1(self.conv1(x)))
         # c2
+        size1 = x.size()[2:]
         x, indices1 = self.max_pool1(self.relu2(self.bn2(self.conv2(x)))) # 1/2
         
         # c3
         x = self.relu3(self.bn3(self.conv3(x)))
         # c4
+        size2 = x.size()[2:]
         x, indices2 = self.max_pool2(self.relu4(self.bn4(self.conv4(x)))) # 1/4
         
         # c5
@@ -196,6 +198,7 @@ class SegNet(nn.Module):
         # c6
         x = self.relu6(self.bn6(self.conv6(x)))
         # c7
+        size3 = x.size()[2:]
         x, indices3 = self.max_pool3(self.relu7(self.bn7(self.conv7(x)))) # 1/8
 
         # c8
@@ -203,6 +206,7 @@ class SegNet(nn.Module):
         # c9
         x = self.relu9(self.bn9(self.conv9(x)))
         # c10
+        size4 = x.size()[2:]
         x, indices4 = self.max_pool4(self.relu10(self.bn10(self.conv10(x)))) # 1/16
 
         # c11
@@ -210,12 +214,12 @@ class SegNet(nn.Module):
         # c12
         x = self.relu12(self.bn12(self.conv12(x)))
         # c13
+        size5 = x.size()[2:]
         x, indices5 = self.max_pool5(self.relu13(self.bn13(self.conv13(x)))) # 1/32
 
 
         # decode-c13
-        print('5: ', x.size(), indices5.size())
-        x = self.upsample5(x, indices5)
+        x = self.upsample5(x, indices5, output_size=size5)
         x = self.decode_relu13(self.decode_bn13(self.decode_conv13(x)))
         # decode-c12
         x = self.decode_relu12(self.decode_bn12(self.decode_conv12(x)))
@@ -223,8 +227,7 @@ class SegNet(nn.Module):
         x = self.decode_relu11(self.decode_bn11(self.decode_conv11(x)))
         
         # decode-c10
-        print('4: ', x.size(), indices4.size())
-        x = self.upsample4(x, indices4)
+        x = self.upsample4(x, indices4, output_size=size4)
         x = self.decode_relu10(self.decode_bn10(self.decode_conv10(x)))
         # decode-c9
         x = self.decode_relu9(self.decode_bn9(self.decode_conv9(x)))
@@ -232,8 +235,7 @@ class SegNet(nn.Module):
         x = self.decode_relu8(self.decode_bn8(self.decode_conv8(x)))
         
         # decode-c7
-        print('3: ', x.size(), indices3.size())
-        x = self.upsample3(x, indices3)
+        x = self.upsample3(x, indices3, output_size=size3)
         x = self.decode_relu7(self.decode_bn7(self.decode_conv7(x)))
         # decode-c6
         x = self.decode_relu6(self.decode_bn6(self.decode_conv6(x)))
@@ -241,13 +243,13 @@ class SegNet(nn.Module):
         x = self.decode_relu5(self.decode_bn5(self.decode_conv5(x)))
         
         # decode-c4
-        x = self.upsample2(x, indices2)
+        x = self.upsample2(x, indices2, output_size=size2)
         x = self.decode_relu4(self.decode_bn4(self.decode_conv4(x)))
         # decode-c3
         x = self.decode_relu3(self.decode_bn3(self.decode_conv3(x)))
         
         # decode-c2
-        x = self.upsample1(x, indices1)
+        x = self.upsample1(x, indices1, output_size=size1)
         x = self.decode_relu2(self.decode_bn2(self.decode_conv2(x)))
         # decode-c1
         x = self.decode_relu1(self.decode_bn1(self.decode_conv1(x)))
