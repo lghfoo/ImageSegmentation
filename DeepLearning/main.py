@@ -5,6 +5,7 @@ from net.fcn.FCNAlex import AlexNetFCN
 from net.fcn.FCN8s import FCN8s
 from net.fcn.FCN16s import FCN16s
 from net.fcn.FCN32s import FCN32s
+from net.segnet.SegNet import SegNet
 from dataset.CamVid import CamVid
 from dataset.CamVid import CamVid11
 import train as trainer
@@ -45,6 +46,7 @@ examples:
     python main.py -predict fcn_alex -i './fcn_alex.pth' -im 'xxxxx.png' -o 'xxxxx_seged.png' -ds 'camvid11'
     python main.py -predict fcn_8s -i './fcn_8s.pth' -im '../../CamVid/images/test/0001TP_008550.png' -ds 'camvid11'
     python main.py -predict fcn_8s -i './fcn_8s.pth' -iml './images_to_predict.txt' -ds 'camvid11'
+    sudo python main.py -train segnet -o './segnet.pth' -l 0.01 -e 10 -b 4 -d '../../CamVid' -opt adam -ds 'camvid11'
 
 [Content in images_to_predict.txt]
 ../../CamVid/images/test/0001TP_008551.png
@@ -63,7 +65,7 @@ def net_from_type_string(net_type, num_classes):
     elif net_type == 'fcn_32s':
         return FCN32s(num_classes)
     elif net_type == 'segnet':
-        pass
+        return SegNet(num_classes)
     print('error: unkown net type')
     return None
 
