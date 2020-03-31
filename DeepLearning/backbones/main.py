@@ -38,7 +38,7 @@ def train(args):
     criterion = nn.CrossEntropyLoss()
     data_root = args.d
     batch_size = args.b
-    epoch_count = args.d
+    epoch_count = args.e
     learning_rate = args.l
     output_path = args.o
     optimizer = None
