@@ -41,6 +41,7 @@ def train(args):
     epoch_count = args.e
     learning_rate = args.l
     output_path = args.o
+    print_size = 30 if args.ps is None else args.ps
     optimizer = None
     if args.opt == 'adagrad':
         optimizer = optim.Adagrad(net.parameters(), lr=learning_rate)
@@ -87,8 +88,8 @@ def train(args):
             iter_loss = loss.item()
             running_loss += iter_loss
             train_loss += loss.item()
-            if i % 1000 == 999:    
-                print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 1000))
+            if i % print_size == print_size-1:    
+                print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / print_size))
                 running_loss = 0.0
         train_loss /= iter_count
 
@@ -172,6 +173,7 @@ def main():
     parser.add_argument('-b', type=int, help='batch size')
     parser.add_argument('-d', help='data root')
     parser.add_argument('-opt', help='optimizer')
+    parser.add_argument('-ps', type=int, help='print size when training')
     args = parser.parse_args()
     if args.train is not None:
         train(args)
