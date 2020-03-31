@@ -37,6 +37,8 @@ def test(net, test_config):
     log('******** test begin [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
     log('batch_size: {}'.format(test_config.batch_size))
     log('model_path: {}'.format(test_config.model_path))
+    log('split: {}'.format(test_config.split))
+    log('dataset: {}'.format(test_config.dataset))
     
     net.load_state_dict(torch.load(test_config.model_path))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
