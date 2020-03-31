@@ -64,6 +64,7 @@ def train(args):
     val_size = len(ori_trainset) - train_size
     #### training ####
     train_info = []
+    best_acc = None
     for epoch in range(epoch_count):
         trainset, valset = torch.utils.data.random_split(ori_trainset, [train_size, val_size])
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
