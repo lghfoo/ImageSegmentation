@@ -211,3 +211,4 @@ def make_resnet(layer_num, num_classes):
     }
     assert layer_num in layers_dict
     model = ResNet(block_dict[layer_num], layers_dict[layer_num], num_classes=num_classes)
+    return model
