@@ -145,14 +145,18 @@ def predict(args):
         for info in infos:
             t = info.split('\n')[0]
             m = info.split('\n')[1]
-            nets.append( (net_from_type_string(t, get_num_classes(args.ds)), m) )
+            nets.append( (t, m) )
         nets_file.close()
     else:
-        nets.append( (net_from_type_string(args.predict, get_num_classes(args.ds)), args.i) )
+        nets.append( (args.predict, args.i) )
     
     for net_info in nets:
-        net = net_info[0]
+        net_type = net_info[0]
         net_model = net_info[1]
+        if not os.path.exists(net_model):
+            print('warning: cannot find {}, skip.'.format(net_model))
+            continue
+        net = net_from_type_string(net_type, get_num_classes(args.ds))
         net.load_state_dict(torch.load(net_model))
         if args.iml is None:
             predictor.predict(net, args.im, args.o, validate.get_dataset_classes(args.ds))
