@@ -16,8 +16,8 @@ import os
 
 detail_usage = """
 train model: -train net_to_train -o saved_model_path -l learning_rate -e epoch_count -b batch_size -d data_root -opt optimizer -i trained_model_path -ds dataset
-test model: -test net_to_test -i model_path -b batch_size -d data_root -ds dataset
-predict: -predict net_to_predict -i model_path -o output_image -ds dataset [-iml input_images_list_file]/[-im input_image]
+test model: -test net_to_test -i model_path -b batch_size -d data_root -ds dataset -sp test
+predict: [-predict net_to_predict -i model_path]/[-predictf nets_file] [-o output_image] -ds dataset [-iml input_images_list_file]/[-im input_image]
 
 net_to_train/test/predict: [
     fcn_alex,
@@ -39,6 +39,12 @@ dataset: [
     camvid11
 ]
 
+split: [
+    train,
+    test,
+    val
+]
+
 examples:
     python main.py -train fcn_alex -o './fcn_alex.pth' -l 0.01 -e 20 -b 4 -d './data/camvid' -opt sgd -i './trained_fcn_alex.pth' -ds 'camvid11'
     python main.py -train fcn_8s -o './fcn_8s.pth' -l 0.01 -e 80 -b 4 -d './data/camvid' -opt sgd -ds 'camvid11'
@@ -47,12 +53,29 @@ examples:
     python main.py -predict fcn_8s -i './fcn_8s.pth' -im '../../CamVid/images/test/0001TP_008550.png' -ds 'camvid11'
     python main.py -predict fcn_8s -i './fcn_8s.pth' -iml './images_to_predict.txt' -ds 'camvid11'
     sudo python main.py -train segnet -o './segnet.pth' -l 0.01 -e 10 -b 4 -d '../../CamVid' -opt adam -ds 'camvid11'
+    sudo python main.py -test segnet -i './segnet.pth' -b 4 -d '../../CamVid' -ds 'camvid11' -sp train
+    sudo python main.py -predictf './nets_file.txt' -ds 'camvid11' -iml './images_to_predict.txt'
 
 [Content in images_to_predict.txt]
 ../../CamVid/images/test/0001TP_008551.png
 ../../CamVid/images/test/0001TP_008552.png
 ../../CamVid/images/test/0001TP_008553.png
 ....
+[Content in nets_file.txt]
+fcn_8s
+./fcn_8s.pth
+
+fcn16s
+./fcn_16s.pth
+
+fcn32s
+./fcn_32s.pth
+
+fcn_alex
+./fcn_alex.pth
+
+segnet
+./segnet.pth
 """
 
 def net_from_type_string(net_type, num_classes):
@@ -109,28 +132,45 @@ def test(args):
         config.data_root = args.d
     if args.ds is not None:
         config.dataset = args.ds
+    if args.sp is not None:
+        config.split = args.sp
     tester.test(net, config)
 
 def predict(args):
-    assert args.i is not None and (args.im is not None or args.iml is not None) and args.ds is not None
-    net = net_from_type_string(args.predict, get_num_classes(args.ds))
-    net.load_state_dict(torch.load(args.i))
-    if args.iml is None:
-        predictor.predict(net, args.im, args.o, validate.get_dataset_classes(args.ds))
-    elif os.path.exists(args.iml):
-        list_file = open(args.iml, "r")
-        lines = list_file.read().split('\n')
-        for line in lines:
-            if len(line) == 0:
-                continue
-            predictor.predict(net, line.strip(), args.o, validate.get_dataset_classes(args.ds))
-        list_file.close()
+    assert (args.i is not None or args.predictf is not None) and (args.im is not None or args.iml is not None) and args.ds is not None
+    nets = []
+    if args.predictf is not None:
+        nets_file = open(args.predictf, "r")
+        infos = nets_file.read().split('\n\n')
+        for info in infos:
+            t = info.split('\n')[0]
+            m = info.split('\n')[1]
+            nets.append( (net_from_type_string(t, get_num_classes(args.ds)), m) )
+        nets_file.close()
+    else:
+        nets.append( (net_from_type_string(args.predict, get_num_classes(args.ds)), args.i) )
+    
+    for net_info in nets:
+        net = net_info[0]
+        net_model = net_info[1]
+        net.load_state_dict(torch.load(net_model))
+        if args.iml is None:
+            predictor.predict(net, args.im, args.o, validate.get_dataset_classes(args.ds))
+        elif os.path.exists(args.iml):
+            list_file = open(args.iml, "r")
+            lines = list_file.read().split('\n')
+            for line in lines:
+                if len(line) == 0:
+                    continue
+                predictor.predict(net, line.strip(), args.o, validate.get_dataset_classes(args.ds))
+            list_file.close()
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, epilog=detail_usage)
     parser.add_argument('-train', help='train model')
     parser.add_argument('-test', help='test model')
     parser.add_argument('-predict', help='predict')
+    parser.add_argument('-predictf', help='predict by file')
     parser.add_argument('-i', help='input model')
     parser.add_argument('-o', help='output model/image')
     parser.add_argument('-l', type=float, help='learning rate')
@@ -141,12 +181,13 @@ def main():
     parser.add_argument('-opt', help='optimizer')
     parser.add_argument('-ds', help='dataset')
     parser.add_argument('-iml', help='input images list file to predict')
+    parser.add_argument('-sp', help='the split to test')
     args = parser.parse_args()
     if args.train is not None:
         train(args)
     elif args.test is not None:
         test(args)
-    elif args.predict is not None:
+    elif args.predict is not None or args.predictf is not None:
         predict(args)
     else:
         parser.print_help()

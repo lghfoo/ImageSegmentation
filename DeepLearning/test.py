@@ -14,13 +14,15 @@ class TestConfig:
         batch_size = 4,
         data_root = './data/camvid',
         model_path = './model.pth',
-        dataset = 'camvid11'
+        dataset = 'camvid11',
+        split = 'test'
     ):
         self.batch_size = batch_size
         self.criterion = validate.CrossEntropyLoss2d()
         self.data_root = data_root
         self.model_path = model_path
         self.dataset = dataset
+        self.split = split
 
 def test(net, test_config):
     global test_log_file
@@ -39,7 +41,7 @@ def test(net, test_config):
     net.load_state_dict(torch.load(test_config.model_path))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
-    testset = validate.get_dataset(test_config.dataset, 'test', test_config.data_root)
+    testset = validate.get_dataset(test_config.dataset, test_config.split, test_config.data_root)
     
     global_accuracy, classes_avg_accuracy, mIoU, test_loss, classes_accuracy, classes_iou = validate.validate(net, testset, test_config.batch_size, device, test_config.criterion)
 

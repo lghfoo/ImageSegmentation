@@ -9,6 +9,8 @@ import shutil
 import torch
 
 def predict(net, input_image_path, output_image_path, classes):
+    images_dir = "./predict_results/images/"
+    labels_dir = "./predict_results/labels/"    
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
     predict_dir = './predict_results/{}/{}/'.format(type(net).__name__, input_without_ext)
     if not os.path.exists(predict_dir):
@@ -17,9 +19,8 @@ def predict(net, input_image_path, output_image_path, classes):
         except OSError as exc: # Guard against race condition
             if exc.errno != errno.EEXIST:
                 raise
-    if output_image_path is None:
-        output_image_path = os.path.join(predict_dir, input_without_ext + '_predicted.png')
-    log_file = open(os.path.join(predict_dir, 'log.{}.txt'.format(time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime()))), "a")
+    output_image_path = os.path.join(predict_dir, input_without_ext + '_predicted.png')
+    log_file = open(os.path.join(predict_dir, 'log.{}.txt'.format(time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime()))), "w")
     img = Image.open(input_image_path)
     input_transform = transforms.Compose([
         transforms.ToTensor(),
@@ -50,8 +51,11 @@ def predict(net, input_image_path, output_image_path, classes):
     output_img = Image.fromarray(rgb_array)
     #### save result ####
     output_img.save(output_image_path)
-    bak_input_path = os.path.join(predict_dir, input_without_ext + '.png')
+    bak_input_path = os.path.join(images_dir, input_without_ext + '.png')
+    bak_labels_path = os.path.join(labels_dir, input_without_ext + '.png')
     if not os.path.exists(bak_input_path):
         shutil.copy(input_image_path, bak_input_path)
+    if not os.path.exists(bak_labels_path):
+        shutil.copy(input_image_path.replace('images', 'labels'), bak_labels_path)
     log_file.close()
     print('finished predicting {}, use {} ms'.format(os.path.basename(input_image_path), (end-beg)*1000))

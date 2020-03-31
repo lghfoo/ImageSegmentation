@@ -1,0 +1,14 @@
+fcn_8s
+./fcn_8s.pth
+
+fcn16s
+./fcn_16s.pth
+
+fcn32s
+./fcn_32s.pth
+
+fcn_alex
+./fcn_alex.pth
+
+segnet
+./segnet.pth
