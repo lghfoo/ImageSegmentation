@@ -8,17 +8,22 @@ import errno
 import shutil
 import torch
 
+def mkdir_if_not_exists(dir_name):
+    if not os.path.exists(dir_name):
+        try:
+            os.makedirs(dir_name)
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+
 def predict(net, input_image_path, output_image_path, classes):
     images_dir = "./predict_results/images/"
     labels_dir = "./predict_results/labels/"    
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
     predict_dir = './predict_results/{}/{}/'.format(type(net).__name__, input_without_ext)
-    if not os.path.exists(predict_dir):
-        try:
-            os.makedirs(predict_dir)
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
+    mkdir_if_not_exists(predict_dir)
+    mkdir_if_not_exists(images_dir)
+    mkdir_if_not_exists(labels_dir)
     output_image_path = os.path.join(predict_dir, input_without_ext + '_predicted.png')
     log_file = open(os.path.join(predict_dir, 'log.{}.txt'.format(time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime()))), "w")
     img = Image.open(input_image_path)
