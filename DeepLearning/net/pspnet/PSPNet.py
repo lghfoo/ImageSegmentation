@@ -63,4 +63,5 @@ class PSPNet(nn.Module):
         x = self.ppm(x)
         x = self.cls(x)
         x = F.interpolate(x, size=x_size, mode='bilinear', align_corners=True)
+        return x
 
