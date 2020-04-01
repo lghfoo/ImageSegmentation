@@ -92,11 +92,10 @@ class PSPNet(nn.Module):
         self.ppm = PPM(fea_dim, int(fea_dim/len(self.bins)), self.bins, nn.BatchNorm2d)
         fea_dim *= 2
         self.cls = nn.Sequential(
-            nn.Conv2d(fea_dim, 512, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(fea_dim, 64, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.Dropout2d(0.1),
-            nn.Conv2d(512, self.num_classes, kernel_size=1)
         )
         #### embeded ppm
 
@@ -264,13 +263,9 @@ class PSPNet(nn.Module):
         
         # decode-c2
         x = self.upsample1(x, indices1, output_size=size1)
-
-        #### fuse
-        print(x.size(), ppm_predict.size())
-        # x = (x + ppm_predict)/2
-
         x = self.decode_relu2(self.decode_bn2(self.decode_conv2(x)))
         # decode-c1
+        x = (x + ppm_predict)/2
         x = self.decode_conv1(x)
 
         return x
