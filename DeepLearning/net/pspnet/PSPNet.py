@@ -54,7 +54,7 @@ class PSPNet(nn.Module):
         )
 
     def forward(self, x):
-        x_size = x.size()
+        x_size = x.size()[2:]
         x = self.layer0(x)
         x = self.layer1(x)
         x = self.layer2(x)
