@@ -41,7 +41,7 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     log_file.write('input: {}\ntime elapsed: {:.3f} ms\n\n'.format(input_image_path, (end-beg)*1000))
     _, pred = torch.max(outputs, 1)
     if need_dbl:
-        pred = pred[0:1, :, :, :]
+        pred = pred[0:1, :, :]
     gray_result = pred.squeeze(0)
     r_channel = gray_result.clone()
     g_channel = gray_result.clone()
