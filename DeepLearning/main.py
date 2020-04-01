@@ -18,7 +18,7 @@ import os
 detail_usage = """
 train model: -train net_to_train -o saved_model_path -l learning_rate -e epoch_count -b batch_size -d data_root -opt optimizer -i trained_model_path -ds dataset
 test model: -test net_to_test -i model_path -b batch_size -d data_root -ds dataset -sp test
-predict: [-predict net_to_predict -i model_path]/[-predictf nets_file] [-o output_image] -ds dataset [-iml input_images_list_file]/[-im input_image]
+predict: [-predict net_to_predict -i model_path]/[-predictf nets_file] [-o output_image] -ds dataset [-iml input_images_list_file]/[-im input_image] [-dbl true]
 
 net_to_train/test/predict: [
     fcn_alex,

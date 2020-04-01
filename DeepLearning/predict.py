@@ -33,7 +33,7 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     ])
     img_tensor = input_transform(img).unsqueeze(0)
     if need_dbl:
-        gray_result = torch.cat( (gray_result, gray_result), 0)  # double the batch size for BatchNormal2d
+        img_tensor = torch.cat( (img_tensor, img_tensor), 0)  # double the batch size for BatchNormal2d
     #### predict ####
     beg = time.time()
     outputs = net(img_tensor)
