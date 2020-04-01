@@ -266,7 +266,8 @@ class PSPNet(nn.Module):
         x = self.upsample1(x, indices1, output_size=size1)
 
         #### fuse
-        x = (x + ppm_predict)/2
+        print(x.size(), ppm_predict.size())
+        # x = (x + ppm_predict)/2
 
         x = self.decode_relu2(self.decode_bn2(self.decode_conv2(x)))
         # decode-c1
