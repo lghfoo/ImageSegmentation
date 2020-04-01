@@ -16,7 +16,7 @@ def mkdir_if_not_exists(dir_name):
             if exc.errno != errno.EEXIST:
                 raise
 
-def predict(net, input_image_path, output_image_path, classes):
+def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     images_dir = "./predict_results/images/"
     labels_dir = "./predict_results/labels/"    
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
@@ -32,14 +32,17 @@ def predict(net, input_image_path, output_image_path, classes):
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
     img_tensor = input_transform(img).unsqueeze(0)
+    if need_dbl:
+        gray_result = torch.cat( (gray_result, gray_result), 0)  # double the batch size for BatchNormal2d
     #### predict ####
     beg = time.time()
     outputs = net(img_tensor)
     end = time.time()
     log_file.write('input: {}\ntime elapsed: {:.3f} ms\n\n'.format(input_image_path, (end-beg)*1000))
     _, pred = torch.max(outputs, 1)
+    if need_dbl:
+        pred = pred[0:1, :, :, :]
     gray_result = pred.squeeze(0)
-    
     r_channel = gray_result.clone()
     g_channel = gray_result.clone()
     b_channel = gray_result.clone()

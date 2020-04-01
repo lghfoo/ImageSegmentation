@@ -155,6 +155,9 @@ def predict(args):
     else:
         nets.append( (args.predict, args.i) )
     
+    dbl = False
+    if args.dbl is not None:
+        dbl = True
     for net_info in nets:
         net_type = net_info[0]
         net_model = net_info[1]
@@ -164,14 +167,14 @@ def predict(args):
         net = net_from_type_string(net_type, get_num_classes(args.ds))
         net.load_state_dict(torch.load(net_model))
         if args.iml is None:
-            predictor.predict(net, args.im, args.o, validate.get_dataset_classes(args.ds))
+            predictor.predict(net, args.im, args.o, validate.get_dataset_classes(args.ds), need_dbl=dbl)
         elif os.path.exists(args.iml):
             list_file = open(args.iml, "r")
             lines = list_file.read().split('\n')
             for line in lines:
                 if len(line) == 0:
                     continue
-                predictor.predict(net, line.strip(), args.o, validate.get_dataset_classes(args.ds))
+                predictor.predict(net, line.strip(), args.o, validate.get_dataset_classes(args.ds), need_dbl=dbl)
             list_file.close()
 
 def main():
@@ -191,6 +194,7 @@ def main():
     parser.add_argument('-ds', help='dataset')
     parser.add_argument('-iml', help='input images list file to predict')
     parser.add_argument('-sp', help='the split to test')
+    parser.add_argument('-dbl', help='double batch when predict (for BatchNormal2d)')
     args = parser.parse_args()
     if args.train is not None:
         train(args)
