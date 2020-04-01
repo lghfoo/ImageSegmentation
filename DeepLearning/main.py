@@ -6,6 +6,7 @@ from net.fcn.FCN8s import FCN8s
 from net.fcn.FCN16s import FCN16s
 from net.fcn.FCN32s import FCN32s
 from net.segnet.SegNet import SegNet
+from net.pspnet.PSPNet import PSPNet
 from dataset.CamVid import CamVid
 from dataset.CamVid import CamVid11
 import train as trainer
@@ -24,7 +25,8 @@ net_to_train/test/predict: [
     fcn_8s,
     fcn_16s,
     fcn_32s,
-    segnet
+    segnet,
+    pspnet
 ]
 
 optimizer: [
@@ -89,6 +91,8 @@ def net_from_type_string(net_type, num_classes):
         return FCN32s(num_classes)
     elif net_type == 'segnet':
         return SegNet(num_classes)
+    elif net_type == 'pspnet':
+        return PSPNet(num_classes)
     print('error: unkown net type')
     return None
 
