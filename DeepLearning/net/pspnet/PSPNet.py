@@ -30,7 +30,7 @@ class PSPNet(nn.Module):
         self.num_classes = num_classes
         self.bins = bins
         self.resnet = torchvision.models.resnet50(pretrained=True)
-        self.layer0 = nn.Sequential(self.resnet.conv1, self.resnet.bn1, self.resnet.relu, self.resnet.conv2, self.resnet.bn2, self.resnet.relu, self.resnet.conv3, self.resnet.bn3, self.resnet.relu, self.resnet.maxpool)
+        self.layer0 = nn.Sequential(self.resnet.conv1, self.resnet.bn1, self.resnet.relu, self.resnet.maxpool)
         self.layer1, self.layer2, self.layer3, self.layer4 = self.resnet.layer1, self.resnet.layer2, self.resnet.layer3, self.resnet.layer4
         for n, m in self.layer3.named_modules():
             if 'conv2' in n:
