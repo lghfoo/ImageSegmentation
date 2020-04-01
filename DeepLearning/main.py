@@ -57,6 +57,7 @@ examples:
     sudo python main.py -train segnet -o './segnet.pth' -l 0.01 -e 10 -b 4 -d '../../CamVid' -opt adam -ds 'camvid11'
     sudo python main.py -test segnet -i './segnet.pth' -b 4 -d '../../CamVid' -ds 'camvid11' -sp train
     sudo python main.py -predictf './nets_file.txt' -ds 'camvid11' -iml './images_to_predict.txt'
+    sudo python ./main.py -train pspnet -o './pspnet.pth' -l 0.01 -e 20 -b 4 -d '../../CamVid' -opt adam -ds 'camvid11'
 
 [Content in images_to_predict.txt]
 ../../CamVid/images/test/0001TP_008551.png

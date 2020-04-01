@@ -102,7 +102,7 @@ class PSPNet(nn.Module):
 
         # Decode-13
         self.upsample5 = nn.MaxUnpool2d(kernel_size=2, stride=2)
-        self.decode_conv13 = nn.Conv2d(in_channels=fea_dim, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.decode_conv13 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.decode_bn13 = nn.BatchNorm2d(num_features=512)
         self.decode_relu13 = nn.ReLU()
         # Decode-12
