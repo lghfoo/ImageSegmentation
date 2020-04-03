@@ -64,7 +64,7 @@ class PFNet(nn.Module):
         # c5
         # x = self.relu5(self.conv5(x))
         # c6
-        x2 = self.relu6(self.conv6(x))
+        x2 = self.relu6(self.conv6(x1))
         size2 = x2.size()[2:]
 
         # c7
@@ -72,7 +72,7 @@ class PFNet(nn.Module):
         # c8
         # x = self.relu8(self.conv8(x))
         # c9
-        x3 = self.relu9(self.conv9(x))
+        x3 = self.relu9(self.conv9(x2))
         size3 = x3.size()[2:]
 
         x = self.conv10(x3)
