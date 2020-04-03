@@ -7,6 +7,7 @@ import validate
 import time
 import os
 import errno
+import math
 
 train_log_file = None
 def log(msg):
@@ -83,7 +84,7 @@ def train(net, train_config):
     criterion = train_config.criterion
     model_path = train_config.model_path
     ### begin train
-    total_iter = epoch_count * (len(trainset) // batch_size)
+    total_iter = epoch_count * (math.ceil(len(trainset) / batch_size))
     log('total_iter: {}'.format(total_iter))
     cur_iter = 0
     for epoch in range(epoch_count):
