@@ -126,6 +126,7 @@ class DANet(BaseNet):
     """
     def __init__(self, nclass, aux=False, se_loss=False, norm_layer=nn.BatchNorm2d, **kwargs):
         super(DANet, self).__init__(nclass, aux, se_loss, norm_layer=norm_layer, **kwargs)
+        self.num_classes = nclass
         self.head = DANetHead(2048, nclass, norm_layer)
 
     def forward(self, x):
