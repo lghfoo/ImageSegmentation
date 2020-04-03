@@ -25,19 +25,19 @@ class PFNet(nn.Module):
         self.conv4 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1)
         self.relu4 = nn.ReLU()
         # 第五层
-        self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1)
         self.relu5 = nn.ReLU()
         # 第六层
-        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=7, stride=2, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=7, stride=2, padding=1)
         self.relu6 = nn.ReLU()
         # 第七层
-        self.conv7 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.conv7 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.relu7 = nn.ReLU()
         # 第八层
-        self.conv8 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.conv8 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.relu8 = nn.ReLU()
         # 第九层
-        self.conv9 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=7, stride=2, padding=1)
+        self.conv9 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=7, stride=2, padding=1)
         self.relu9 = nn.ReLU()
 
         self.conv10 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
