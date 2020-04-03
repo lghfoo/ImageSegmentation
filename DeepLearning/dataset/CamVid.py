@@ -7,6 +7,7 @@ import zipfile
 from torchvision.datasets.vision import VisionDataset
 from PIL import Image
 import numpy as np
+import random
 
 class CamVid(VisionDataset):
 
@@ -71,9 +72,14 @@ class CamVid(VisionDataset):
     ]
 
     def __init__(self, root, split='train', transform=torchvision.transforms.Compose([
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomVerticalFlip(),
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ]), target_transform=None, transforms=None):
+        ]), target_transform=torchvision.transforms.Compose([
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomVerticalFlip(),
+        ]), transforms=None):
 
         super(CamVid, self).__init__(root, transforms, transform, target_transform)
         self.images_dir = os.path.join(self.root, 'images', split)
@@ -96,8 +102,18 @@ class CamVid(VisionDataset):
         assert index in range(0, len(self.images))
         image = Image.open(self.images[index]).convert('RGB')
         target = Image.open(self.targets[index])
-        if self.transforms is not None:
-            image, target = self.transforms(image, target)
+
+        # if self.transforms is not None:
+        #     image, target = self.transforms(image, target)
+
+        seed = np.random.randint(2147483647) # make a seed with numpy generator 
+        random.seed(seed) # apply this seed to img tranfsorms
+        if self.transform is not None:
+            img = self.transform(img)
+        random.seed(seed) # apply this seed to target tranfsorms
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
         target = torch.as_tensor(np.array(target))
         return image, target
 
@@ -147,9 +163,14 @@ class CamVid11(VisionDataset):
     ]
 
     def __init__(self, root, split='train', transform=torchvision.transforms.Compose([
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomVerticalFlip(),
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ]), target_transform=None, transforms=None):
+        ]), target_transform=torchvision.transforms.Compose([
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomVerticalFlip(),
+        ]), transforms=None):
 
         super(CamVid11, self).__init__(root, transforms, transform, target_transform)
         self.images_dir = os.path.join(self.root, 'images', split)
@@ -172,8 +193,18 @@ class CamVid11(VisionDataset):
         assert index in range(0, len(self.images))
         image = Image.open(self.images[index]).convert('RGB')
         target = Image.open(self.targets[index])
-        if self.transforms is not None:
-            image, target = self.transforms(image, target)
+
+        # if self.transforms is not None:
+        #     image, target = self.transforms(image, target)
+
+        seed = np.random.randint(2147483647) # make a seed with numpy generator 
+        random.seed(seed) # apply this seed to img tranfsorms
+        if self.transform is not None:
+            img = self.transform(img)
+        random.seed(seed) # apply this seed to target tranfsorms
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
         target = torch.as_tensor(np.array(target))
         return image, target
 
