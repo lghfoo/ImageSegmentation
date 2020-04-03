@@ -7,6 +7,7 @@ from net.fcn.FCN16s import FCN16s
 from net.fcn.FCN32s import FCN32s
 from net.segnet.SegNet import SegNet
 from net.pspnet.PSPNet import PSPNet
+from net.danet.DANet import DANet
 from dataset.CamVid import CamVid
 from dataset.CamVid import CamVid11
 import train as trainer
@@ -18,7 +19,7 @@ import os
 detail_usage = """
 train model: -train net_to_train -o saved_model_path -l learning_rate -e epoch_count -b batch_size -d data_root -opt optimizer -i trained_model_path -ds dataset
 test model: -test net_to_test -i model_path -b batch_size -d data_root -ds dataset -sp test
-predict: [-predict net_to_predict -i model_path]/[-predictf nets_file] [-o output_image] -ds dataset [-iml input_images_list_file]/[-im input_image] [-dbl true]
+predict: [-predict net_to_predict -i model_path]/[-predictf nets_file] [-o output_image] -ds dataset [-iml input_images_list_file]/[-im input_image]
 
 net_to_train/test/predict: [
     fcn_alex,
@@ -26,7 +27,8 @@ net_to_train/test/predict: [
     fcn_16s,
     fcn_32s,
     segnet,
-    pspnet
+    pspnet,
+    danet
 ]
 
 optimizer: [
@@ -94,6 +96,8 @@ def net_from_type_string(net_type, num_classes):
         return SegNet(num_classes)
     elif net_type == 'pspnet':
         return PSPNet(num_classes)
+    elif net_type == 'danet':
+        return DANet(num_classes)
     print('error: unkown net type')
     return None
 
@@ -155,11 +159,9 @@ def predict(args):
     else:
         nets.append( (args.predict, args.i) )
     
-    dbl = False
-    if args.dbl is not None:
-        dbl = True
     for net_info in nets:
         net_type = net_info[0]
+        dbl = (net_type == 'pspnet' or net_type == 'danet')
         net_model = net_info[1]
         if not os.path.exists(net_model):
             print('warning: cannot find {}, skip.'.format(net_model))
@@ -194,7 +196,6 @@ def main():
     parser.add_argument('-ds', help='dataset')
     parser.add_argument('-iml', help='input images list file to predict')
     parser.add_argument('-sp', help='the split to test')
-    parser.add_argument('-dbl', help='double batch when predict (for BatchNormal2d)')
     args = parser.parse_args()
     if args.train is not None:
         train(args)
