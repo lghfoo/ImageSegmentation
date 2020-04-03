@@ -101,7 +101,7 @@ def train(net, train_config):
             iter_count += 1
             cur_iter += 1
             train_loss += loss.item()
-            log('[%d, %5d] loss: %.3f, learning_rate: %.5f' % (epoch + 1, i + 1, loss.item(), train_config.learning_rate))
+            log('[%d, %5d] loss: %.3f, learning_rate: %f' % (epoch + 1, i + 1, loss.item(), train_config.learning_rate))
 
             if train_config.optimizer == 'sgd_danet':
                 train_config.learning_rate *= pow(1- cur_iter / total_iter, 0.9)
