@@ -101,12 +101,15 @@ def train(net, train_config):
             iter_count += 1
             cur_iter += 1
             train_loss += loss.item()
-            log('[%d, %5d] loss: %.3f, learning_rate: %f' % (epoch + 1, i + 1, loss.item(), train_config.learning_rate))
 
             if train_config.optimizer == 'sgd_danet':
+                log('[%d, %5d] loss: %.3f, learning_rate: %f' % (epoch + 1, i + 1, loss.item(), train_config.learning_rate))
                 train_config.learning_rate *= pow(1- cur_iter / total_iter, 0.9)
                 for g in optimizer.param_groups:
                     g['lr'] = train_config.learning_rate
+            else:
+                log('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, loss.item()))
+
             # break
         train_loss /= iter_count
 
