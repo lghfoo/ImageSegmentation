@@ -109,7 +109,7 @@ class CamVid(VisionDataset):
         seed = np.random.randint(2147483647) # make a seed with numpy generator 
         random.seed(seed) # apply this seed to img tranfsorms
         if self.transform is not None:
-            img = self.transform(img)
+            image = self.transform(image)
         random.seed(seed) # apply this seed to target tranfsorms
         if self.target_transform is not None:
             target = self.target_transform(target)
@@ -200,7 +200,7 @@ class CamVid11(VisionDataset):
         seed = np.random.randint(2147483647) # make a seed with numpy generator 
         random.seed(seed) # apply this seed to img tranfsorms
         if self.transform is not None:
-            img = self.transform(img)
+            image = self.transform(image)
         random.seed(seed) # apply this seed to target tranfsorms
         if self.target_transform is not None:
             target = self.target_transform(target)
