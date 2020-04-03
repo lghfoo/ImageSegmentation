@@ -28,13 +28,13 @@ class PFNet(nn.Module):
         self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.relu5 = nn.ReLU()
         # 第六层
-        self.conv6 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=7, stride=2, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=7, stride=2, padding=1)
         self.relu6 = nn.ReLU()
         # 第七层
-        self.conv7 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.conv7 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu7 = nn.ReLU()
         # 第八层
-        self.conv8 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.conv8 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
         self.relu8 = nn.ReLU()
         # 第九层
         self.conv9 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=7, stride=2, padding=1)
@@ -56,26 +56,26 @@ class PFNet(nn.Module):
         # c2
         x = self.relu2(self.conv2(x)) # 1/2
         # c3
-        size1 = x.size()[2:]
         x1 = self.relu3(self.conv3(x))
+        size1 = x.size()[2:]
 
         # c4
         x = self.relu4(self.conv4(x1)) # 1/4
         # c5
         x = self.relu5(self.conv5(x))
         # c6
-        size2 = x.size()[2:]
         x2 = self.relu6(self.conv6(x))
+        size2 = x.size()[2:]
 
         # c7
         x = self.relu7(self.conv7(x2)) # 1/8
         # c8
         x = self.relu8(self.conv8(x))
         # c9
-        size3 = x.size()[2:]
         x3 = self.relu9(self.conv9(x))
+        size3 = x.size()[2:]
 
-        # x = self.conv10(x3)
+        x = self.conv10(x3)
 
         x = F.interpolate(x, size3, mode='bilinear', align_corners=True)
         x = x + x3
@@ -92,6 +92,7 @@ class PFNet(nn.Module):
         # x = self.relu(self.reconv1(x))
         x = self.reconv1(x)
 
+        x = F.interpolate(x, img_size, mode='bilinear', align_corners=True)
         x = self.reconv0(x)
 
         return x
