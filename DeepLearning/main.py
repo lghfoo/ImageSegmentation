@@ -7,6 +7,7 @@ from net.fcn.FCN16s import FCN16s
 from net.fcn.FCN32s import FCN32s
 from net.segnet.SegNet import SegNet
 from net.pspnet.PSPNet import PSPNet
+from net.pfnet.PFNet import PFNet
 from net.danet.DANet import DANet
 from dataset.CamVid import CamVid
 from dataset.CamVid import CamVid11
@@ -99,6 +100,8 @@ def net_from_type_string(net_type, num_classes):
         return PSPNet(num_classes)
     elif net_type == 'danet':
         return DANet(num_classes)
+    elif net_type == 'pfnet':
+        return PFNet(num_classes)
     print('error: unkown net type')
     return None
 
