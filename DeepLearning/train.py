@@ -64,8 +64,8 @@ def train(net, train_config):
         optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
     elif train_config.optimizer == 'adadelta':
         optimizer = optim.Adadelta(net.parameters(), lr=train_config.learning_rate)
-    elif train_config.optimizer == 'sgd':
-        optimizer = optim.SGD(net.parameters(), lr = train_config.learning_rate, momentum=0.9)
+    elif train_config.optimizer.startswith('sgd'):
+        optimizer = optim.SGD(net.parameters(), lr = train_config.learning_rate, momentum=0.9, weight_decay=0.0001)
     elif train_config.optimizer == 'adam':
         optimizer = optim.Adam(net.parameters(), lr=train_config.learning_rate)
     else:
@@ -73,6 +73,7 @@ def train(net, train_config):
         return
     train_info = []
     best_global_accuracy = None
+    best_miou = None
     ### train config
     batch_size = train_config.batch_size
     epoch_count = train_config.epoch_count
@@ -82,6 +83,9 @@ def train(net, train_config):
     criterion = train_config.criterion
     model_path = train_config.model_path
     ### begin train
+    total_iter = epoch_count * (len(trainset) // batch_size)
+    log('total_iter: {}'.format(total_iter))
+    cur_iter = 0
     for epoch in range(epoch_count):
         train_loss = 0.0
         iter_count = 0
@@ -93,10 +97,16 @@ def train(net, train_config):
             loss = criterion(outputs, labels.squeeze(1).long())
             loss.backward()
             optimizer.step()
-
+            
             iter_count += 1
+            cur_iter += 1
             train_loss += loss.item()
-            log('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, loss.item()))
+            log('[%d, %5d] loss: %.3f, learning_rate: %.5f' % (epoch + 1, i + 1, loss.item(), train_config.learning_rate))
+
+            if train_config.optimizer == 'sgd_danet':
+                train_config.learning_rate *= pow(1- cur_iter / total_iter, 0.9)
+                for g in optimizer.param_groups:
+                    g['lr'] = train_config.learning_rate
             # break
         train_loss /= iter_count
 
@@ -107,6 +117,10 @@ def train(net, train_config):
             log('save model')
             best_global_accuracy = global_accuracy
             torch.save(net.state_dict(), model_path)
+        if best_miou is None or best_miou < mIoU:
+            log('save model for best mIoU')
+            best_miou = mIoU
+            torch.save(net.state_dict(), model_path.replace('.pth', '_mIoU.pth'))
         log("-------- Epoch #" + str(epoch + 1) + " Summary --------")
         log("mIoU: " + str(mIoU))
         log("classes_avg_accuracy: " + str(classes_avg_accuracy))

@@ -33,6 +33,7 @@ net_to_train/test/predict: [
 
 optimizer: [
     sgd,
+    sgd_danet,
     adagrad,
     adadelta,
     adam
