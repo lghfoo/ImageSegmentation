@@ -98,15 +98,16 @@ class BaseNet(nn.Module):
         # self.pretrained = torchvision.models.resnet101(pretrained=False)
 
     def base_forward(self, x):
-        x = self.pretrained.conv1(x)
-        x = self.pretrained.bn1(x)
-        x = self.pretrained.relu(x)
-        x = self.pretrained.maxpool(x)
-        c1 = self.pretrained.layer1(x)
-        c2 = self.pretrained.layer2(c1)
-        c3 = self.pretrained.layer3(c2)
-        c4 = self.pretrained.layer4(c3)
-        return c1, c2, c3, c4
+        # x = self.pretrained.conv1(x)
+        # x = self.pretrained.bn1(x)
+        # x = self.pretrained.relu(x)
+        # x = self.pretrained.maxpool(x)
+        # c1 = self.pretrained.layer1(x)
+        # c2 = self.pretrained.layer2(c1)
+        # c3 = self.pretrained.layer3(c2)
+        # c4 = self.pretrained.layer4(c3)
+        # return c1, c2, c3, c4
+        return self.pretrained.layer4(self.pretrained.layer3(self.pretrained.layer2(self.pretrained.layer1(self.pretrained.relu(self.pretrained.bn1(self.pretrained.conv1(x)))))))
 
 class DANet(BaseNet):
     r"""Fully Convolutional Networks for Semantic Segmentation
@@ -128,33 +129,33 @@ class DANet(BaseNet):
     def __init__(self, nclass, aux=False, se_loss=False, norm_layer=nn.BatchNorm2d, **kwargs):
         super(DANet, self).__init__(nclass, aux, se_loss, norm_layer=norm_layer, **kwargs)
         self.num_classes = nclass
-        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
+        # self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
+        # self.head = DANetHead(2048, 1024, norm_layer)
+        self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
     
-    def forward(self, x):
-        return self.pretrained(x)["out"]
-    #     self.num_classes = nclass
-    #     self.head = DANetHead(2048, 1024, norm_layer)
-    #     self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
-
     # def forward(self, x):
-    #     imsize = x.size()[2:]
-    #     _, _, _, c4 = self.base_forward(x)
-    #     # x = self.head(c4)
-    #     # x = list(x)
-    #     # x = self.classifier(x[0])
-    #     x = self.classifier(c4)
-    #     x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
-    #     return x
+    #     return self.pretrained(x)["out"]
 
-    #     # x[0] = upsample(x[0], imsize, mode='bilinear', align_corners=True)
-    #     # x[1] = upsample(x[1], imsize, mode='bilinear', align_corners=True)
-    #     # x[2] = upsample(x[2], imsize, mode='bilinear', align_corners=True)
+    def forward(self, x):
+        imsize = x.size()[2:]
+        # _, _, _, c4 = self.base_forward(x)
+        x = self.base_forward(x)
+        # x = self.head(c4)
+        # x = list(x)
+        # x = self.classifier(x[0])
+        x = self.classifier(x)
+        x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
+        return x
 
-    #     # outputs = [x[0]]
-    #     # outputs.append(x[1])
-    #     # outputs.append(x[2])
-    #     # return tuple(outputs)
-    #     # return x[0]
+        # x[0] = upsample(x[0], imsize, mode='bilinear', align_corners=True)
+        # x[1] = upsample(x[1], imsize, mode='bilinear', align_corners=True)
+        # x[2] = upsample(x[2], imsize, mode='bilinear', align_corners=True)
+
+        # outputs = [x[0]]
+        # outputs.append(x[1])
+        # outputs.append(x[2])
+        # return tuple(outputs)
+        # return x[0]
 
         
 class DANetHead(nn.Module):
