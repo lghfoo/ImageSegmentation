@@ -35,7 +35,7 @@ class PSPNet(nn.Module):
                 m.dilation, m.padding, m.stride = (2, 2), (2, 2), (1, 1)
             elif 'downsample.0' in n:
                 m.stride = (1, 1)
-        for n, m in self.pretrained.layer4.backbone.named_modules():
+        for n, m in self.pretrained.backbone.layer4.named_modules():
             if 'conv2' in n:
                 m.dilation, m.padding, m.stride = (4, 4), (4, 4), (1, 1)
             elif 'downsample.0' in n:
