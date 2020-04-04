@@ -35,9 +35,10 @@ class FCNResNet8s(nn.Module):
             return t1[:,:,int((h_t1-h_t2)/2):int((h_t1-h_t2)/2)+h_t2, int((w_t1-w_t2)/2):int((w_t1-w_t2)/2)+w_t2]
 
         upsamled2x = self.deconv3(c4)
+        print(c3.size(), upsamled2x.size())
         sigma1 = upsamled2x + center_crop_tensor(c3, upsamled2x)
         upsamled2x_sigmal1 = self.deconv2(sigma1)
         sigma2 = upsamled2x_sigmal1 + center_crop_tensor(c2, upsamled2x_sigmal1)
         upsampled8x = self.deconv1(sigma2)
-        
+
         return center_crop_tensor(upsampled8x, torch.Tensor(1, 1, img_size[0], img_size[1]))
