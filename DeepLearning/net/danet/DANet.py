@@ -130,33 +130,34 @@ class DANet(BaseNet):
     def __init__(self, nclass, aux=False, se_loss=False, norm_layer=nn.BatchNorm2d, **kwargs):
         super(DANet, self).__init__(nclass, aux, se_loss, norm_layer=norm_layer, **kwargs)
         self.num_classes = nclass
-        # self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
+        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
         # self.head = DANetHead(2048, 1024, norm_layer)
         # self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
 
-        backbone = resnet.__dict__['resnet50'](
-            pretrained=False,
-            replace_stride_with_dilation=[False, True, True])
-        return_layers = {'layer4': 'out'}
-        self.backbone = torchvision.models._utils.IntermediateLayerGetter(backbone, return_layers=return_layers)
-        self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
+        # backbone = resnet.__dict__['resnet50'](
+        #     pretrained=False,
+        #     replace_stride_with_dilation=[False, True, True])
+        # return_layers = {'layer4': 'out'}
+        # self.backbone = torchvision.models._utils.IntermediateLayerGetter(backbone, return_layers=return_layers)
+        # self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
         # base_model = torchvision.models.segmentation.fcn.FCN(backbone, classifier, None)
         
     
-    # def forward(self, x):
-    #     return self.pretrained(x)["out"]
-
     def forward(self, x):
-        imsize = x.size()[2:]
-        features = self.backbone(x)
+        return self.pretrained(x)["out"]
 
-        result = torchvision.models.segmentation._utils.OrderedDict()
-        x = features["out"]
-        x = self.classifier(x)
-        x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
-        result["out"] = x
+    # def forward(self, x):
+        # imsize = x.size()[2:]
+        # features = self.backbone(x)
 
-        return result["out"]
+        # result = torchvision.models.segmentation._utils.OrderedDict()
+        # x = features["out"]
+        # x = self.classifier(x)
+        # x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
+        # result["out"] = x
+
+        # return result["out"]
+
         # _, _, _, c4 = self.base_forward(x)
         # x = self.base_forward(x)
         # x = self.head(c4)
