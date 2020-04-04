@@ -28,9 +28,9 @@ class FCNResNet8s(nn.Module):
         c4 = self.pretrained.layer4(c3)
 
 
-        upsamled2x = F.interpolate(c4, c3.size()[1:], mode='nearest', align_corners=True)
+        upsamled2x = F.interpolate(c4, c3.size()[1:], mode='nearest', align_corners=False)
         sigma1 = upsamled2x + c3
-        upsamled2x_sigmal1 = F.interpolate(sigma1, c2.size()[1:], mode='nearest', align_corners=True)
+        upsamled2x_sigmal1 = F.interpolate(sigma1, c2.size()[1:], mode='nearest', align_corners=False)
         sigma2 = upsamled2x_sigmal1 + c2
-        upsampled8x = F.interpolate(sigma2, torch.Tensor([self.num_classes, img_size[0], img_size[1]]), mode='nearest', align_corners=True)
+        upsampled8x = F.interpolate(sigma2, torch.Tensor([self.num_classes, img_size[0], img_size[1]]), mode='nearest', align_corners=False)
         return upsampled8x
