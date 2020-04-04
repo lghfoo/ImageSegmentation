@@ -127,29 +127,34 @@ class DANet(BaseNet):
     """
     def __init__(self, nclass, aux=False, se_loss=False, norm_layer=nn.BatchNorm2d, **kwargs):
         super(DANet, self).__init__(nclass, aux, se_loss, norm_layer=norm_layer, **kwargs)
-        self.num_classes = nclass
-        self.head = DANetHead(2048, 1024, norm_layer)
-        self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
-
+        self.num_classes = num_classes
+        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
+    
     def forward(self, x):
-        imsize = x.size()[2:]
-        _, _, _, c4 = self.base_forward(x)
-        # x = self.head(c4)
-        # x = list(x)
-        # x = self.classifier(x[0])
-        x = self.classifier(c4)
-        x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
-        return x
+        return self.pretrained(x)["out"]
+    #     self.num_classes = nclass
+    #     self.head = DANetHead(2048, 1024, norm_layer)
+    #     self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
 
-        # x[0] = upsample(x[0], imsize, mode='bilinear', align_corners=True)
-        # x[1] = upsample(x[1], imsize, mode='bilinear', align_corners=True)
-        # x[2] = upsample(x[2], imsize, mode='bilinear', align_corners=True)
+    # def forward(self, x):
+    #     imsize = x.size()[2:]
+    #     _, _, _, c4 = self.base_forward(x)
+    #     # x = self.head(c4)
+    #     # x = list(x)
+    #     # x = self.classifier(x[0])
+    #     x = self.classifier(c4)
+    #     x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
+    #     return x
 
-        # outputs = [x[0]]
-        # outputs.append(x[1])
-        # outputs.append(x[2])
-        # return tuple(outputs)
-        # return x[0]
+    #     # x[0] = upsample(x[0], imsize, mode='bilinear', align_corners=True)
+    #     # x[1] = upsample(x[1], imsize, mode='bilinear', align_corners=True)
+    #     # x[2] = upsample(x[2], imsize, mode='bilinear', align_corners=True)
+
+    #     # outputs = [x[0]]
+    #     # outputs.append(x[1])
+    #     # outputs.append(x[2])
+    #     # return tuple(outputs)
+    #     # return x[0]
 
         
 class DANetHead(nn.Module):
