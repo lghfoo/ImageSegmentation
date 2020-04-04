@@ -138,6 +138,7 @@ class DANet(BaseNet):
         x = list(x)
         x = self.classifier(x[0])
         x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
+        return x
 
         # x[0] = upsample(x[0], imsize, mode='bilinear', align_corners=True)
         # x[1] = upsample(x[1], imsize, mode='bilinear', align_corners=True)
@@ -147,7 +148,7 @@ class DANet(BaseNet):
         # outputs.append(x[1])
         # outputs.append(x[2])
         # return tuple(outputs)
-        return x[0]
+        # return x[0]
 
         
 class DANetHead(nn.Module):
