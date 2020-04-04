@@ -144,7 +144,22 @@ class DANet(BaseNet):
         
     
     def forward(self, x):
-        return self.pretrained(x)["out"]
+        input_shape = x.shape[-2:]
+        # contract: features is a dict of tensors
+        features = self.pretrained.backbone(x)
+
+        result = torchvision.models.segmentation._utils.OrderedDict()
+        x = features["out"]
+        x = self.pretrained.classifier(x)
+        x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+        result["out"] = x
+        # if self.aux_classifier is not None:
+        #     x = features["aux"]
+        #     x = self.aux_classifier(x)
+        #     x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+        #     result["aux"] = x
+        return result
+        # return self.pretrained(x)["out"]
 
     # def forward(self, x):
         # imsize = x.size()[2:]
