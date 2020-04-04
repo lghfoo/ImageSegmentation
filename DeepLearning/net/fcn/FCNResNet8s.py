@@ -39,7 +39,9 @@ class FCNResNet8s(nn.Module):
 
         upsamled2x = self.deconv3(c4)
         print(c3.size(), upsamled2x.size())
-        sigma1 = upsamled2x + center_crop_tensor(upsamled2x, c3)
+        tmp = center_crop_tensor(upsamled2x, c3)
+        print(tmp.size())
+        sigma1 = upsamled2x + tmp
         upsamled2x_sigmal1 = self.deconv2(sigma1)
         print(c2.size(), upsamled2x_sigmal1.size())
         sigma2 = upsamled2x_sigmal1 + center_crop_tensor(upsamled2x_sigmal1, c2)
