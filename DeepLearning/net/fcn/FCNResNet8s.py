@@ -15,6 +15,7 @@ class FCNResNet8s(nn.Module):
         self.pretrained = torchvision.models.resnet50(pretrained=True)
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=100,
                         bias=False)
+        self.final_conv = nn.Conv2d(in_channels=2048, out_channels=2048, kernel_size=1)
         self.deconv1 = nn.ConvTranspose2d(in_channels=512, out_channels=self.num_classes, kernel_size=16, stride=8, bias=False)
         self.deconv2 = nn.ConvTranspose2d(1024, 512, kernel_size=4, stride=2, bias=False)
         self.deconv3 = nn.ConvTranspose2d(2048, 1024, kernel_size=4, stride=2, bias=False)
@@ -31,6 +32,8 @@ class FCNResNet8s(nn.Module):
         c2 = self.pretrained.layer2(c1)
         c3 = self.pretrained.layer3(c2)
         c4 = self.pretrained.layer4(c3)
+
+        c4 = self.final_conv(c4)
 
         def center_crop_tensor(t1, t2):
             (h_t1, w_t1, h_t2, w_t2) = (t1.size()[2], t1.size()[3], t2.size()[2], t2.size()[3])
