@@ -127,7 +127,7 @@ class DANet(BaseNet):
     """
     def __init__(self, nclass, aux=False, se_loss=False, norm_layer=nn.BatchNorm2d, **kwargs):
         super(DANet, self).__init__(nclass, aux, se_loss, norm_layer=norm_layer, **kwargs)
-        self.num_classes = num_classes
+        self.num_classes = nclass
         self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
     
     def forward(self, x):
