@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torchvision
-
 class FCNResNet50(nn.Module):
     def __init__(self, num_classes):
         super(FCNResNet50, self).__init__()
