@@ -128,6 +128,7 @@ class DANet(BaseNet):
         super(DANet, self).__init__(nclass, aux, se_loss, norm_layer=norm_layer, **kwargs)
         self.num_classes = nclass
         self.head = DANetHead(2048, nclass, norm_layer)
+        self.classifier = torchvision.models.segmentation.FCNHead(2048, self.num_classes)
 
     def forward(self, x):
         imsize = x.size()[2:]
@@ -135,7 +136,10 @@ class DANet(BaseNet):
 
         x = self.head(c4)
         x = list(x)
-        x[0] = upsample(x[0], imsize, mode='bilinear', align_corners=True)
+        x = self.classifier(x[0])
+        x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
+
+        # x[0] = upsample(x[0], imsize, mode='bilinear', align_corners=True)
         # x[1] = upsample(x[1], imsize, mode='bilinear', align_corners=True)
         # x[2] = upsample(x[2], imsize, mode='bilinear', align_corners=True)
 
