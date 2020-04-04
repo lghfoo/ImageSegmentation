@@ -94,8 +94,8 @@ class BaseNet(nn.Module):
         self.base_size = base_size
         self.crop_size = crop_size
         # copying modules from pretrained models
-        # self.pretrained = torchvision.models.resnet50(pretrained=True)
-        self.pretrained = torchvision.models.resnet101(pretrained=True)
+        # self.pretrained = torchvision.models.resnet50(pretrained=False)
+        self.pretrained = torchvision.models.resnet101(pretrained=False)
 
     def base_forward(self, x):
         x = self.pretrained.conv1(x)
