@@ -13,7 +13,7 @@ class FCNResNet8s(nn.Module):
         super(FCNResNet8s, self).__init__()
         self.num_classes = num_classes
         self.pretrained = torchvision.models.resnet50(pretrained=True)
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=100,
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=100,
                         bias=False)
         self.deconv1 = nn.ConvTranspose2d(in_channels=512, out_channels=self.num_classes, kernel_size=16, stride=8, bias=False)
         self.deconv2 = nn.ConvTranspose2d(1024, 512, kernel_size=4, stride=2, bias=False)
