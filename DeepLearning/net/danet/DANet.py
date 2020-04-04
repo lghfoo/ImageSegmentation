@@ -152,8 +152,8 @@ class DANet(BaseNet):
         x = features["out"]
 
         x = self.head(x)
-        
-        x = self.pretrained.classifier(x)
+
+        x = self.pretrained.classifier(x)[0]
         x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
         result["out"] = x
         # if self.aux_classifier is not None:
