@@ -128,7 +128,7 @@ class DANet(BaseNet):
         super(DANet, self).__init__(nclass, aux, se_loss, norm_layer=norm_layer, **kwargs)
         self.num_classes = nclass
         self.head = DANetHead(2048, nclass, norm_layer)
-        self.classifier = torchvision.models.segmentation.FCNHead(2048, self.num_classes)
+        self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
 
     def forward(self, x):
         imsize = x.size()[2:]
