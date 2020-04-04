@@ -131,7 +131,7 @@ class DANet(BaseNet):
         super(DANet, self).__init__(nclass, aux, se_loss, norm_layer=norm_layer, **kwargs)
         self.num_classes = nclass
         self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
-        # self.head = DANetHead(2048, 1024, norm_layer)
+        self.head = DANetHead(2048, 2048, norm_layer)
         # self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
 
         # backbone = resnet.__dict__['resnet50'](
@@ -150,6 +150,9 @@ class DANet(BaseNet):
 
         result = torchvision.models.segmentation._utils.OrderedDict()
         x = features["out"]
+
+        x = self.head(x)
+        
         x = self.pretrained.classifier(x)
         x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
         result["out"] = x
