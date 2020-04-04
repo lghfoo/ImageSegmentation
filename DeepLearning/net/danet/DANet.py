@@ -14,6 +14,7 @@ from torch.nn.parallel.data_parallel import DataParallel
 from torch.nn.parallel.parallel_apply import parallel_apply
 from torch.nn.parallel.scatter_gather import scatter
 import torchvision
+from torchvision.models import resnet
 class PAM_Module(nn.Module):
     """ Position attention module"""
     #Ref from SAGAN
@@ -94,7 +95,7 @@ class BaseNet(nn.Module):
         self.base_size = base_size
         self.crop_size = crop_size
         # copying modules from pretrained models
-        self.pretrained = torchvision.models.resnet50(pretrained=False, replace_stride_with_dilation=[False, True, True])
+        # self.pretrained = torchvision.models.resnet50(pretrained=False, replace_stride_with_dilation=[False, True, True])
         # self.pretrained = torchvision.models.resnet101(pretrained=False)
 
     def base_forward(self, x):
@@ -131,21 +132,39 @@ class DANet(BaseNet):
         self.num_classes = nclass
         # self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
         # self.head = DANetHead(2048, 1024, norm_layer)
+        # self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
+
+        backbone = resnet.__dict__['resnet50'](
+            pretrained=False,
+            replace_stride_with_dilation=[False, True, True])
+        return_layers = {'layer4': 'out'}
+        self.backbone = torchvision.models._utils.IntermediateLayerGetter(backbone, return_layers=return_layers)
         self.classifier = torchvision.models.segmentation.fcn.FCNHead(2048, self.num_classes)
+        # base_model = torchvision.models.segmentation.fcn.FCN(backbone, classifier, None)
+        
     
     # def forward(self, x):
     #     return self.pretrained(x)["out"]
 
     def forward(self, x):
         imsize = x.size()[2:]
+        features = self.backbone(x)
+
+        result = torchvision.models.segmentation._utils.OrderedDict()
+        x = features["out"]
+        x = self.classifier(x)
+        x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
+        result["out"] = x
+
+        return result["out"]
         # _, _, _, c4 = self.base_forward(x)
-        x = self.base_forward(x)
+        # x = self.base_forward(x)
         # x = self.head(c4)
         # x = list(x)
         # x = self.classifier(x[0])
-        x = self.classifier(x)
-        x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
-        return x
+        # x = self.classifier(x)
+        # x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
+        # return x
 
         # x[0] = upsample(x[0], imsize, mode='bilinear', align_corners=True)
         # x[1] = upsample(x[1], imsize, mode='bilinear', align_corners=True)
