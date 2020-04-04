@@ -158,7 +158,7 @@ class DANet(BaseNet):
         #     x = self.aux_classifier(x)
         #     x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
         #     result["aux"] = x
-        return result
+        return result["out"]
         # return self.pretrained(x)["out"]
 
     # def forward(self, x):
