@@ -24,7 +24,6 @@ class FCNResNet8s(nn.Module):
         img_size = x.size()[2:]
 
         x = self.conv1(x)
-        print(x.size())
         x = self.pretrained.bn1(x)
         x = self.pretrained.relu(x)
         x = self.pretrained.maxpool(x)
