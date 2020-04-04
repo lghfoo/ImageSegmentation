@@ -61,6 +61,7 @@ def train(net, train_config):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
     optimizer = None
+    print(net.parameters())
     if train_config.optimizer == 'adagrad':
         optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
     elif train_config.optimizer == 'adadelta':
