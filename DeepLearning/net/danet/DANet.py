@@ -94,8 +94,8 @@ class BaseNet(nn.Module):
         self.base_size = base_size
         self.crop_size = crop_size
         # copying modules from pretrained models
-        # self.pretrained = torchvision.models.resnet50(pretrained=False)
-        self.pretrained = torchvision.models.resnet101(pretrained=False)
+        self.pretrained = torchvision.models.resnet50(pretrained=False)
+        # self.pretrained = torchvision.models.resnet101(pretrained=False)
 
     def base_forward(self, x):
         x = self.pretrained.conv1(x)
@@ -134,10 +134,10 @@ class DANet(BaseNet):
     def forward(self, x):
         imsize = x.size()[2:]
         _, _, _, c4 = self.base_forward(x)
-
-        x = self.head(c4)
-        x = list(x)
-        x = self.classifier(x[0])
+        # x = self.head(c4)
+        # x = list(x)
+        # x = self.classifier(x[0])
+        x = self.classifier(c4)
         x = F.interpolate(x, size=imsize, mode='bilinear', align_corners=False)
         return x
 
