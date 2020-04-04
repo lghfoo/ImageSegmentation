@@ -9,4 +9,4 @@ class FCNResNet50(nn.Module):
         self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
     
     def forward(self, x):
-        self.pretrained(x)
+        return self.pretrained(x)
