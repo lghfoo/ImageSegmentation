@@ -29,15 +29,13 @@ class PSPNet(nn.Module):
         super(PSPNet, self).__init__()
         self.num_classes = num_classes
         self.bins = bins
-        self.resnet = torchvision.models.resnet50(pretrained=True)
-        self.layer0 = nn.Sequential(self.resnet.conv1, self.resnet.bn1, self.resnet.relu, self.resnet.maxpool)
-        self.layer1, self.layer2, self.layer3, self.layer4 = self.resnet.layer1, self.resnet.layer2, self.resnet.layer3, self.resnet.layer4
-        for n, m in self.layer3.named_modules():
+        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
+        for n, m in self.pretrained.layer3.named_modules():
             if 'conv2' in n:
                 m.dilation, m.padding, m.stride = (2, 2), (2, 2), (1, 1)
             elif 'downsample.0' in n:
                 m.stride = (1, 1)
-        for n, m in self.layer4.named_modules():
+        for n, m in self.pretrained.layer4.named_modules():
             if 'conv2' in n:
                 m.dilation, m.padding, m.stride = (4, 4), (4, 4), (1, 1)
             elif 'downsample.0' in n:
@@ -55,11 +53,7 @@ class PSPNet(nn.Module):
 
     def forward(self, x):
         x_size = x.size()[2:]
-        x = self.layer0(x)
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        x = self.pretrained.backbone(x)["out"]
         x = self.ppm(x)
         x = self.cls(x)
         x = F.interpolate(x, size=x_size, mode='bilinear', align_corners=True)

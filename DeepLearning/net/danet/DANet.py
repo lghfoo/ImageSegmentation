@@ -90,15 +90,12 @@ class DANet(nn.Module):
     
     def forward(self, x):
         input_shape = x.shape[-2:]
-        features = self.pretrained.backbone(x)
-        result = torchvision.models.segmentation._utils.OrderedDict()
-        x = features["out"]
+        x = self.pretrained.backbone(x)["out"]
         ## PAM & CAM
         x = self.head(x)[0]
         x = self.pretrained.classifier(x)
         x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
-        result["out"] = x
-        return result["out"]
+        return x
 
         
 class DANetHead(nn.Module):
