@@ -6,6 +6,7 @@ from net.fcn.FCN8s import FCN8s
 from net.fcn.FCN16s import FCN16s
 from net.fcn.FCN32s import FCN32s
 from net.fcn.FCNResNet8s import FCNResNet8s
+from net.fcn.FCNResNet50 import FCNResNet50
 from net.segnet.SegNet import SegNet
 from net.pspnet.PSPNet import PSPNet
 from net.pfnet.PFNet import PFNet
@@ -29,6 +30,7 @@ net_to_train/test/predict: [
     fcn_16s,
     fcn_32s,
     fcn_resnet,
+    fcn_resnet50,
     segnet,
     pspnet,
     danet
@@ -106,6 +108,8 @@ def net_from_type_string(net_type, num_classes):
         return PFNet(num_classes)
     elif net_type == 'fcn_resnet':
         return FCNResNet8s(num_classes)
+    elif net_type == 'fcn_resnet50':
+        return FCNResNet50(num_classes)
     print('error: unkown net type')
     return None
 
