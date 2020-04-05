@@ -705,6 +705,7 @@ class EMANet(nn.Module):
     ''' Implementation of EMANet (ICCV 2019 Oral).'''
     def __init__(self, n_classes, n_layers=50):
         super().__init__()
+        self.num_classes = n_classes
         backbone = resnet(n_layers, settings.STRIDE)
         self.extractor = nn.Sequential(
             backbone.conv1,
