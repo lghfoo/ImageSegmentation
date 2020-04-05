@@ -181,7 +181,7 @@ def predict(args):
     
     for net_info in nets:
         net_type = net_info[0]
-        dbl = (net_type == 'pspnet' or net_type == 'danet')
+        dbl = net_type in ['pspnet', 'danet', 'deeplabv3']
         net_model = net_info[1]
         if not os.path.exists(net_model):
             print('warning: cannot find {}, skip.'.format(net_model))
