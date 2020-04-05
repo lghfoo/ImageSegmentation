@@ -11,6 +11,8 @@ from net.segnet.SegNet import SegNet
 from net.pspnet.PSPNet import PSPNet
 from net.pfnet.PFNet import PFNet
 from net.danet.DANet import DANet
+from net.deeplabv3.DeepLabv3 import DeepLabv3
+from net.emanet.EMANet import EMANet
 from dataset.CamVid import CamVid
 from dataset.CamVid import CamVid11
 import train as trainer
@@ -33,7 +35,9 @@ net_to_train/test/predict: [
     fcn_resnet50,
     segnet,
     pspnet,
-    danet
+    danet,
+    deeplabv3,
+    emanet
 ]
 
 optimizer: [
@@ -110,6 +114,10 @@ def net_from_type_string(net_type, num_classes):
         return FCNResNet8s(num_classes)
     elif net_type == 'fcn_resnet50':
         return FCNResNet50(num_classes)
+    elif net_type == 'deeplabv3':
+        return DeepLabv3(num_classes)
+    elif net_type == 'emanet':
+        return EMANet(num_classes)
     print('error: unkown net type')
     return None
 
