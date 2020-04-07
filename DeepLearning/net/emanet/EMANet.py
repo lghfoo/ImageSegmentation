@@ -22,6 +22,7 @@ from torch.nn.parallel._functions import ReduceAddCoalesced, Broadcast
 import queue
 import collections
 import threading
+import torchvision
 
 class FutureResult(object):
     """A thread-safe future implementation. Used only as one-to-one pipe."""
@@ -706,17 +707,7 @@ class EMANet(nn.Module):
     def __init__(self, n_classes, n_layers=50):
         super().__init__()
         self.num_classes = n_classes
-        backbone = resnet(n_layers, settings.STRIDE)
-        self.extractor = nn.Sequential(
-            backbone.conv1,
-            backbone.bn1,
-            backbone.relu,
-            backbone.maxpool,
-            backbone.layer1,
-            backbone.layer2,
-            backbone.layer3,
-            backbone.layer4)
-
+        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
         self.fc0 = ConvBNReLU(2048, 512, 3, 1, 1, 1)
         self.emau = EMAU(512, 64, settings.STAGE_NUM)
         self.fc1 = nn.Sequential(
@@ -724,26 +715,14 @@ class EMANet(nn.Module):
             nn.Dropout2d(p=0.1))
         self.fc2 = nn.Conv2d(256, n_classes, 1)
 
-        # Put the criterion inside the model to make GPU load balanced
-        self.crit = CrossEntropyLoss2d(ignore_index=settings.IGNORE_LABEL, 
-                                       reduction='none')
-
-    def forward(self, img, lbl=None, size=None):
-        x = self.extractor(img)
-        x = self.fc0(x)
-        x, mu = self.emau(x)
+    def forward(self, x, lbl=None, size=None):
+        input_shape = x.shape[-2:]
+        x = self.pretrained.backbone(x)["out"]
+        x, _ = self.emau(x)
         x = self.fc1(x)
         x = self.fc2(x)
-
-        if size is None:
-            size = img.size()[-2:]
-        pred = F.interpolate(x, size=size, mode='bilinear', align_corners=True)
-
-        if self.training and lbl is not None:
-            loss = self.crit(pred, lbl)
-            return loss, mu
-        else:
-            return pred
+        x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+        return x
 
 class CrossEntropyLoss2d(nn.Module):
     def __init__(self, weight=None, reduction='none', ignore_index=-1):
