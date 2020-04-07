@@ -718,6 +718,7 @@ class EMANet(nn.Module):
     def forward(self, x, lbl=None, size=None):
         input_shape = x.shape[-2:]
         x = self.pretrained.backbone(x)["out"]
+        x = self.fc0(x)
         x, _ = self.emau(x)
         x = self.fc1(x)
         x = self.fc2(x)
