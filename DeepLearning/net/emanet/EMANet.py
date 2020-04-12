@@ -707,7 +707,10 @@ class EMANet(nn.Module):
     def __init__(self, n_classes, n_layers=50):
         super().__init__()
         self.num_classes = n_classes
-        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
+        if n_layers==50:
+            self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
+        elif n_layers==101:
+            self.pretrained = torchvision.models.segmentation.fcn_resnet101(pretrained=False, num_classes=self.num_classes)
         self.fc0 = ConvBNReLU(2048, 512, 3, 1, 1, 1)
         self.emau = EMAU(512, 64, settings.STAGE_NUM)
         self.fc1 = nn.Sequential(

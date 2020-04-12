@@ -38,12 +38,13 @@ net_to_train/test/predict: [
     pspnet,
     danet,
     deeplabv3,
-    emanet
+    emanet,
+    emanet_res101
 ]
 
 optimizer: [
     sgd,
-    sgd_danet,
+    poly,
     adagrad,
     adadelta,
     adam
@@ -121,6 +122,8 @@ def net_from_type_string(net_type, num_classes):
         return DeepLabv3(num_classes)
     elif net_type == 'emanet':
         return EMANet(num_classes)
+    elif net_type == 'emanet_res101':
+        return EMANet(num_classes, 101)
     print('error: unkown net type')
     return None
 

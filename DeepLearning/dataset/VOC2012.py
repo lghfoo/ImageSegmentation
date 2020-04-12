@@ -8,7 +8,7 @@ from torchvision.datasets.vision import VisionDataset
 from PIL import Image
 import numpy as np
 import random
-
+import matplotlib.pyplot as plt
 class VOC2012(VisionDataset):
 
     """
@@ -121,9 +121,23 @@ class VOC2012(VisionDataset):
 
 
 if __name__ == '__main__':
+    def imshow(img):
+        img = img / 2 + 0.5     # unnormalize
+        npimg = img.numpy()
+        plt.imshow(np.transpose(npimg, (1, 2, 0)))
+        plt.show()
+
     # test
     root = 'D:\\Study\\毕业设计\\Dataset\\VOC2012Aug\\VOC2012AUG'
     voc2012 = VOC2012(root)
-    train_dataloader = torch.utils.data.DataLoader(voc2012, batch_size=1, shuffle=True, num_workers=0)
+    train_dataloader = torch.utils.data.DataLoader(voc2012, batch_size=4, shuffle=True, num_workers=0)
     for (i,data) in enumerate(train_dataloader):
-        print(i)
+        img = data[0]
+        lab = data[1].float() / 255
+        lab = lab.unsqueeze(1)
+        lab = lab.repeat(1, 3, 1, 1)
+        # print(img.size(), lab.size())
+        c = torch.cat((img.float(), lab.float()), dim=0)
+        # print(c.size())
+        imshow(torchvision.utils.make_grid(c))
+        break

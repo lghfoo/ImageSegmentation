@@ -65,7 +65,7 @@ def train(net, train_config):
         optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
     elif train_config.optimizer == 'adadelta':
         optimizer = optim.Adadelta(net.parameters(), lr=train_config.learning_rate)
-    elif train_config.optimizer.startswith('sgd'):
+    elif train_config.optimizer == 'sgd' or train_config.optimizer == 'poly':
         optimizer = optim.SGD(net.parameters(), lr = train_config.learning_rate, momentum=0.9, weight_decay=0.0001)
     elif train_config.optimizer == 'adam':
         optimizer = optim.Adam(net.parameters(), lr=train_config.learning_rate)
@@ -103,13 +103,13 @@ def train(net, train_config):
             cur_iter += 1
             train_loss += loss.item()
 
-            if train_config.optimizer == 'sgd_danet':
-                log('[%d, %5d] loss: %.3f, learning_rate: %f' % (epoch + 1, i + 1, loss.item(), train_config.learning_rate))
-                train_config.learning_rate *= pow(1- cur_iter / total_iter, 0.9)
-                for g in optimizer.param_groups:
-                    g['lr'] = train_config.learning_rate
-            else:
-                log('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, loss.item()))
+            log('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, loss.item()))
+
+        if train_config.optimizer == 'poly':
+            log('[%d] learning_rate: %f' % (epoch+1, train_config.learning_rate))
+            train_config.learning_rate *= pow(1- (epoch+1)/epoch_count, 0.9)#pow(1- cur_iter / total_iter, 0.9)
+            for g in optimizer.param_groups:
+                g['lr'] = train_config.learning_rate
 
             # break
         train_loss /= iter_count
