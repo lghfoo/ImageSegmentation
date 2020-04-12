@@ -89,8 +89,8 @@ class VOC2012(VisionDataset):
             assert os.path.exists(img_path)
             lab_path = os.path.join(self.root, lab)
             assert os.path.exists(lab_path)
-            self.images.append(img)
-            self.targets.append(lab)
+            self.images.append(img_path)
+            self.targets.append(lab_path)
         data_file.close()
 
     def __getitem__(self, index):
@@ -114,4 +114,5 @@ class VOC2012(VisionDataset):
 
     def __len__(self):
         return len(self.images)
+
 
