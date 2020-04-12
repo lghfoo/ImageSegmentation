@@ -112,7 +112,6 @@ class VOC2012(VisionDataset):
             target = self.target_transform(target)
 
         target = torch.as_tensor(np.array(target))
-        print(image.size(), target.size())
         return image, target
 
     def __len__(self):
