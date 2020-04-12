@@ -64,11 +64,13 @@ class VOC2012(VisionDataset):
     def __init__(self, root, split='train', transform=torchvision.transforms.Compose([
             torchvision.transforms.RandomHorizontalFlip(),
             torchvision.transforms.RandomVerticalFlip(),
+            torchvision.transforms.RandomCrop(size=(64,128)),
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]), target_transform=torchvision.transforms.Compose([
             torchvision.transforms.RandomHorizontalFlip(),
             torchvision.transforms.RandomVerticalFlip(),
+            torchvision.transforms.RandomCrop(size=(64,128))
         ]), transforms=None):
 
         super(VOC2012, self).__init__(root, transforms, transform, target_transform)
@@ -110,9 +112,17 @@ class VOC2012(VisionDataset):
             target = self.target_transform(target)
 
         target = torch.as_tensor(np.array(target))
+        print(image.size(), target.size())
         return image, target
 
     def __len__(self):
         return len(self.images)
 
 
+if __name__ == '__main__':
+    # test
+    root = 'D:\\Study\\毕业设计\\Dataset\\VOC2012Aug\\VOC2012AUG'
+    voc2012 = VOC2012(root)
+    train_dataloader = torch.utils.data.DataLoader(voc2012, batch_size=4, shuffle=True, num_workers=0)
+    for (i,data) in enumerate(train_dataloader):
+        print(i)
