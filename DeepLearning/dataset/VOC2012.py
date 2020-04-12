@@ -62,12 +62,14 @@ class VOC2012(VisionDataset):
     ]
 
     def __init__(self, root, split='train', transform=torchvision.transforms.Compose([
+            torchvision.transforms.Resize(size=(500, 500), interpolation=Image.BILINEAR),
             torchvision.transforms.RandomHorizontalFlip(),
             torchvision.transforms.RandomVerticalFlip(),
             # torchvision.transforms.RandomCrop(size=(64,128)),
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]), target_transform=torchvision.transforms.Compose([
+            torchvision.transforms.Resize(size=(500, 500), interpolation=Image.NEAREST),
             torchvision.transforms.RandomHorizontalFlip(),
             torchvision.transforms.RandomVerticalFlip(),
             # torchvision.transforms.RandomCrop(size=(64,128))
