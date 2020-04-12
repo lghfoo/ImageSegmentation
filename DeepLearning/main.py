@@ -15,6 +15,7 @@ from net.deeplabv3.DeepLabv3 import DeepLabv3
 from net.emanet.EMANet import EMANet
 from dataset.CamVid import CamVid
 from dataset.CamVid import CamVid11
+from dataset.VOC2012 import VOC2012
 import train as trainer
 import test as tester
 import predict as predictor
@@ -50,7 +51,8 @@ optimizer: [
 
 dataset: [
     camvid,
-    camvid11
+    camvid11,
+    voc2012
 ]
 
 split: [
@@ -126,6 +128,8 @@ def get_num_classes(dataset):
         return len(CamVid11.classes)
     if dataset == 'camvid':
         return len(CamVid.classes)
+    if dataset == 'voc2012':
+        return len(VOC2012.classes)
     print('error: unkown dataset')
     return 0
 
