@@ -25,7 +25,8 @@ class TrainConfig:
         model_path = './model.pth',
         trained_model_path = None,
         optimizer = 'sgd',
-        dataset = 'camvid11'
+        dataset = 'camvid11',
+        split='train'
     ):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -36,6 +37,7 @@ class TrainConfig:
         self.trained_model_path = trained_model_path
         self.model_path = model_path
         self.dataset = dataset
+        self.split = split
 
 
 def train(net, train_config):
@@ -78,7 +80,7 @@ def train(net, train_config):
     ### train config
     batch_size = train_config.batch_size
     epoch_count = train_config.epoch_count
-    trainset = validate.get_dataset(train_config.dataset, 'train', train_config.data_root)
+    trainset = validate.get_dataset(train_config.dataset, train_config.split, train_config.data_root)
     valset = validate.get_dataset(train_config.dataset, 'val', train_config.data_root)
     train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=0)
     criterion = train_config.criterion
