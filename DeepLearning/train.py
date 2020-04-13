@@ -58,6 +58,7 @@ def train(net, train_config):
     log('trained_model_path: {}'.format(train_config.trained_model_path))
     log('optimizer: {}'.format(train_config.optimizer))
     log('dataset: {}'.format(train_config.dataset))
+    log('split: {}'.format(train_config.split))
     if train_config.trained_model_path is not None:
         net.load_state_dict(torch.load(train_config.trained_model_path))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

@@ -80,7 +80,7 @@ class VOC2012(VisionDataset):
         self.split = split
         self.images = []
         self.targets = []
-        assert split in ['train', 'test', 'val']
+        assert split in ['train', 'train_aug', 'test', 'val']
         assert os.path.exists(self.data_file)
 
         data_file = open(self.data_file, "r")
