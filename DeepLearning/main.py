@@ -65,7 +65,7 @@ split: [
 examples:
     python main.py -train fcn_alex -o './fcn_alex.pth' -l 0.01 -e 20 -b 4 -d './data/camvid' -opt sgd -i './trained_fcn_alex.pth' -ds 'camvid11'
     python main.py -train fcn_8s -o './fcn_8s.pth' -l 0.01 -e 80 -b 4 -d './data/camvid' -opt sgd -ds 'camvid11'
-    python main.py -train emanet -o './emanet_voc2012.pth' -l 0.01 -e 20 -b 4 -d '../../VOC2012AUG/' -opt adam -ds 'voc2012'
+    python main.py -train emanet_res101 -o './emanet_voc2012.pth' -l 0.01 -e 20 -b 4 -d '../../VOC2012AUG/' -opt adam -ds 'voc2012' -sp train_aug
     python main.py -test fcn_alex -i './fcn_alex.pth' -b 4 -d './data/camvid' -ds 'camvid11'
     python main.py -predict fcn_alex -i './fcn_alex.pth' -im 'xxxxx.png' -o 'xxxxx_seged.png' -ds 'camvid11'
     python main.py -predict fcn_8s -i './fcn_8s.pth' -im '../../CamVid/images/test/0001TP_008550.png' -ds 'camvid11'
