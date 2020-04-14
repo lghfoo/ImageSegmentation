@@ -26,7 +26,8 @@ class TrainConfig:
         trained_model_path = None,
         optimizer = 'sgd',
         dataset = 'camvid11',
-        split='train'
+        split='train',
+        gpu=0
     ):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -38,6 +39,7 @@ class TrainConfig:
         self.model_path = model_path
         self.dataset = dataset
         self.split = split
+        self.gpu = gpu
 
 
 def train(net, train_config):
@@ -61,7 +63,7 @@ def train(net, train_config):
     log('split: {}'.format(train_config.split))
     if train_config.trained_model_path is not None:
         net.load_state_dict(torch.load(train_config.trained_model_path))
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:{}".format(train_config.gpu) if torch.cuda.is_available() else "cpu")
     net.to(device)
     optimizer = None
     if train_config.optimizer == 'adagrad':
