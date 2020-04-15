@@ -1,4 +1,0 @@
-﻿  GMM.cpp
-D:\Study\毕业设计\Output\Code\ImageSegmentation\GMM\GMM\GMM.hpp(77,1): warning C4267: “return”: 从“size_t”转换到“int”，可能丢失数据
-D:\Study\毕业设计\Output\Code\ImageSegmentation\GMM\GMM\GMM.hpp(328,1): warning C4267: “return”: 从“size_t”转换到“int”，可能丢失数据
-  GMM.vcxproj -> D:\Study\毕业设计\Output\Code\ImageSegmentation\GMM\x64\Debug\GMM.exe
