@@ -23,5 +23,8 @@
     <ClInclude Include="GMM.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="index.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

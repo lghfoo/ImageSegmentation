@@ -27,11 +27,12 @@ namespace CV {
 }
 
 namespace GMM {
+
 	static void KMeansGray(const cv::Mat& InImage, const int K, std::vector<double>& OutMeans) {
 		printf("-------- K-Means --------\n");
 		OutMeans.resize(K);
 		// 随机初始化
-		std::srand(std::time(NULL));
+		//std::srand(std::time(NULL));
 		for (int i = 0; i < K; i++) {
 			int RandRow = std::rand() % InImage.rows;
 			int RandCol = std::rand() % InImage.cols;
@@ -70,7 +71,7 @@ namespace GMM {
 				Clusteres[MinIndex].Add(Sample);
 			}
 			// b) 更新均值向量
-			double Threshold = 0.001;
+			double Threshold = 1e-8;
 			HasMeansUpdated = false;
 			printf("================ Update Means ================\n");
 			for (int i = 0; i < K; i++) {
@@ -92,7 +93,7 @@ namespace GMM {
 		printf("-------- K-Means --------\n");
 		OutMeans.resize(K);
 		// 随机初始化
-		std::srand(std::time(NULL));
+		//std::srand(std::time(NULL));
 		for (int i = 0; i < K; i++) {
 			int RandRow = std::rand() % InImage.rows;
 			int RandCol = std::rand() % InImage.cols;
@@ -142,7 +143,7 @@ namespace GMM {
 				Clusteres[MinIndex].Add(Sample);
 			}
 			// b) 更新均值向量
-			double Threshold = 0.001;
+			double Threshold = 1e-8;
 			HasMeansUpdated = false;
 			printf("================ Update Means ================\n");
 			for (int i = 0; i < K; i++) {
@@ -193,7 +194,7 @@ namespace GMM {
 		printf("-------- Segmentation --------\n");
 		printf("Means: \[");
 		for (int i = 0; i < Means.size(); i++) {
-			printf("%f", Means[i]);
+			printf("(%f, %f, %f)", Means[i][0], Means[i][1], Means[i][2]);
 			if (i != Means.size() - 1)printf(", ");
 			else printf("]\n");
 		}
@@ -360,10 +361,10 @@ namespace GMM {
 
 		// 是否满足停止条件
 		static auto CheckCondition = [](const Context& Context) -> bool {
-			return Context.IterationCount >= 10
-				|| (Context.MaxDCoeff() <= 0.001
-					&& Context.MaxDExp() <= 0.001
-					&& Context.MaxDVar() <= 0.001);
+			return Context.IterationCount >= 20
+				|| (Context.MaxDCoeff() <= 0.0001
+					&& Context.MaxDExp() <= 0.0001
+					&& Context.MaxDVar() <= 0.0001);
 		};
 
 		// 计算概率
@@ -1166,17 +1167,7 @@ namespace GMM {
 				}
 			}
 			void UpdateCache() {
-				auto Left = std::sqrt(std::pow(2.0 * PI, 3)),
-					Right1 = cv::determinant(VarianceMat),
-					Right2 = cv::sqrt(Right1);
-				Cache1 = 1.0 / ((Left * Right2) + 1e-8);
-				if (std::isnan(Cache1)) {
-					printf("[%f, %f, %f, [ [%f, %f, %f], [%f, %f, %f], [%f, %f, %f] ] ]\n", Left, Right1, Right2,
-						VarianceMat.at<double>(0, 0), VarianceMat.at<double>(0, 1), VarianceMat.at<double>(0, 2),
-						VarianceMat.at<double>(1, 0), VarianceMat.at<double>(1, 1), VarianceMat.at<double>(1, 2),
-						VarianceMat.at<double>(2, 0), VarianceMat.at<double>(2, 1), VarianceMat.at<double>(2, 2)
-					);
-				}
+				Cache1 = 1.0 / (std::sqrt(std::pow(2.0 * PI, 3) * cv::determinant(VarianceMat)));
 				Cache2 = VarianceMat.inv();
 			}
 		};
@@ -1342,6 +1333,7 @@ namespace GMM {
 				// 计算上一次迭代的Gij
 				{
 					printf("Compute GCache....\n");
+#pragma omp parallel for
 					for (int i = 0; i < InImage.rows; i++) {
 						for (int j = 0; j < InImage.cols; j++) {
 							for (int k = 0; k < Count(); k++) {
@@ -1391,6 +1383,7 @@ namespace GMM {
 				// 更新系数
 				{
 					printf("Update Coefficient....\n");
+#pragma omp parallel for
 					for (int i = 0; i < InImage.rows; i++) {
 						for (int j = 0; j < InImage.cols; j++) {
 							int NIndex = i * InImage.cols + j;
@@ -1415,7 +1408,7 @@ namespace GMM {
 					this->UpdateCache();
 					// first term
 					double FirstTerm = 0;
-//#pragma omp parallel for reduction (+:FirstTerm)
+#pragma omp parallel for reduction (+:FirstTerm)
 					for (int i = 0; i < N; i++) {
 						double SumTemp = 1e-9;
 						for (int k = 0; k < K; k++) {
@@ -1426,7 +1419,7 @@ namespace GMM {
 					}
 					// second term
 					double SecondTerm = 0;
-//#pragma omp parallel for reduction (+:SecondTerm)
+#pragma omp parallel for reduction (+:SecondTerm)
 					for (int i = 0; i < N; i++) {
 						double SumTemp = 1e-9;
 						for (int k = 0; k < K; k++) {
@@ -1617,13 +1610,29 @@ namespace GMM {
 		//Model.WritePostProbility();
 	}
 
-	static void TestGMMSegmentation(const char* InputImageName, const char* OutputModel = nullptr, const char* InputModel = nullptr) {
+	static void TestGMMSegmentation(const char* InputImageName, int K = 4, const char* OutputModel = nullptr, const char* InputModel = nullptr) {
 		cv::Mat InputImage;
 		if (CV::ReadImage(InputImageName, InputImage, cv::IMREAD_GRAYSCALE)) {
 			InputImage.convertTo(InputImage, CV_64FC1, 1.0 / 255.0);
 
 			cv::Mat SegmentedImg;
-			GMMSegmentationGray(InputImage, 4, SegmentedImg, OutputModel, InputModel);
+			GMMSegmentationGray(InputImage, K, SegmentedImg, OutputModel, InputModel);
+
+			CV::DisplayImage(InputImage, "Origin");
+			CV::DisplayImage(SegmentedImg, "Segmented");
+		}
+		else {
+			printf("read image fail\n");
+		}
+	}	
+	
+	static void TestGMMSegmentationColor(const char* InputImageName, int K = 4, const char* OutputModel = nullptr, const char* InputModel = nullptr) {
+		cv::Mat InputImage;
+		if (CV::ReadImage(InputImageName, InputImage, cv::IMREAD_COLOR)) {
+			InputImage.convertTo(InputImage, CV_64FC1, 1.0 / 255.0);
+
+			cv::Mat SegmentedImg;
+			GMMSegmentationColor(InputImage, K, SegmentedImg);
 
 			CV::DisplayImage(InputImage, "Origin");
 			CV::DisplayImage(SegmentedImg, "Segmented");
@@ -1649,7 +1658,7 @@ namespace GMM {
 		}
 	}
 
-	void TestModifiedGMMSegmentationColor(const char* InputImageName, int K = 4) {
+	static void TestModifiedGMMSegmentationColor(const char* InputImageName, int K = 4) {
 		cv::Mat InputImage;
 		if (CV::ReadImage(InputImageName, InputImage, cv::IMREAD_COLOR)) {
 			InputImage.convertTo(InputImage, CV_64FC3, 1.0 / 255.0);
@@ -1707,18 +1716,22 @@ namespace GMM {
 		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\grid.PNG";
 		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse2.PNG";
 		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\Lenna.jpg";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse1.PNG";
 		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\elephant.PNG";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\cow.PNG";
 		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\leaf.jpg";
+		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\snow.PNG";
+		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\cow.PNG";
+		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse1.PNG";
 		K = 3;
 		K = 4;
 		K = 2;
+		std::srand(time(NULL));
 		//TestKMeansSegmentation(InputImageName.c_str());
-		//TestGMMSegmentation(InputImageName2);
+		//TestKMeansSegmentationColor(InputImageName.c_str(), K);
+		//TestGMMSegmentation(InputImageName.c_str(), K);
+		TestGMMSegmentationColor(InputImageName.c_str(), K);
 		//TestModifiedGMMSegmentation(InputImageName.c_str(), K);
 		//TestKMeansSegmentationColor(InputImageName.c_str(), K);
-		TestModifiedGMMSegmentationColor(InputImageName.c_str(), K);
+		//TestModifiedGMMSegmentationColor(InputImageName.c_str(), K);
 		CV::Wait();
 	}
 }
