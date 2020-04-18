@@ -28,7 +28,7 @@ class TrainConfig:
         dataset = 'camvid11',
         split='train',
         gpu=0,
-        gpus=[0,1,2,3]
+        gpus=[0,1]
     ):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
