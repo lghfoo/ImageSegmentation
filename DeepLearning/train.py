@@ -28,7 +28,8 @@ class TrainConfig:
         dataset = 'camvid11',
         split='train',
         gpu=0,
-        gpus=[0,1]
+        gpus=[0,1],
+        num_classes=20
     ):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -42,6 +43,7 @@ class TrainConfig:
         self.split = split
         self.gpu = gpu
         self.gpus=gpus
+        self.num_classes
 
 
 def train(net, train_config):
@@ -128,7 +130,7 @@ def train(net, train_config):
         train_loss /= iter_count
 
         ### validate
-        global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou = validate.validate(net, valset, batch_size, train_config.gpus, criterion)
+        global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou = validate.validate(net, valset, batch_size, train_config.gpus, criterion, num_classes=train_config.num_classes)
 
         if best_global_accuracy is None or best_global_accuracy < global_accuracy:
             log('save model')

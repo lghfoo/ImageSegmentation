@@ -15,7 +15,8 @@ class TestConfig:
         data_root = './data/camvid',
         model_path = './model.pth',
         dataset = 'camvid11',
-        split = 'test'
+        split = 'test',
+        num_classes = 20
     ):
         self.batch_size = batch_size
         self.criterion = validate.CrossEntropyLoss2d()
@@ -23,6 +24,8 @@ class TestConfig:
         self.model_path = model_path
         self.dataset = dataset
         self.split = split
+        self.num_classes=num_classes
+        self.gpus = [0]
 
 def test(net, test_config):
     global test_log_file
@@ -41,11 +44,12 @@ def test(net, test_config):
     log('dataset: {}'.format(test_config.dataset))
     
     net.load_state_dict(torch.load(test_config.model_path))
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    net.to(device)
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # net.to(device)
+    net = torch.nn.DataParallel(net, device_ids=test_config.gpus).cuda()
     testset = validate.get_dataset(test_config.dataset, test_config.split, test_config.data_root)
     
-    global_accuracy, classes_avg_accuracy, mIoU, test_loss, classes_accuracy, classes_iou = validate.validate(net, testset, test_config.batch_size, device, test_config.criterion)
+    global_accuracy, classes_avg_accuracy, mIoU, test_loss, classes_accuracy, classes_iou = validate.validate(net, testset, test_config.batch_size, test_config.gpus, test_config.criterion, test_config.num_classes)
 
     log("-------- Test Summary --------")
     log("mIoU: " + str(mIoU))

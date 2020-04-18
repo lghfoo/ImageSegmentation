@@ -62,7 +62,7 @@ def get_dataset_classes(dataset):
 
 # input: net, dataset, batch_size, device, criterion
 # output: global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou
-def validate(net, valset, batch_size, device, criterion):
+def validate(net, valset, batch_size, device, criterion, num_classes):
     val_dataloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True, num_workers=0)
     intersection_meter = AverageMeter()
     union_meter = AverageMeter()
@@ -81,7 +81,7 @@ def validate(net, valset, batch_size, device, criterion):
             outputs = net(inputs)
             loss = criterion(outputs, labels.squeeze(1).long())
             _, preds = torch.max(outputs, 1)
-            intersection, union, target = intersection_and_union(preds, labels, net.num_classes)
+            intersection, union, target = intersection_and_union(preds, labels, num_classes)
             intersection_meter.update(intersection)
             union_meter.update(union)
             target_meter.update(target)

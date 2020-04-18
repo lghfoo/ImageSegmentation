@@ -140,6 +140,7 @@ def get_num_classes(dataset):
 def train(args):
     net = net_from_type_string(args.train, get_num_classes(args.ds))
     config = trainer.TrainConfig()
+    config.num_classes = get_num_classes(args.ds)
     if args.o is not None:
         config.model_path = args.o
     if args.l is not None:
@@ -165,6 +166,7 @@ def train(args):
 def test(args):
     net = net_from_type_string(args.test, get_num_classes(args.ds))
     config = tester.TestConfig()
+    config.num_classes = get_num_classes(args.ds)
     if args.i is not None:
         config.model_path = args.i
     if args.b is not None:
