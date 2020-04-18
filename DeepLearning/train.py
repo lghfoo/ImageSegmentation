@@ -27,7 +27,8 @@ class TrainConfig:
         optimizer = 'sgd',
         dataset = 'camvid11',
         split='train',
-        gpu=0
+        gpu=0,
+        gpus=[0,1,2,3]
     ):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -40,6 +41,7 @@ class TrainConfig:
         self.dataset = dataset
         self.split = split
         self.gpu = gpu
+        self.gpus=gpus
 
 
 def train(net, train_config):
@@ -63,8 +65,11 @@ def train(net, train_config):
     log('split: {}'.format(train_config.split))
     if train_config.trained_model_path is not None:
         net.load_state_dict(torch.load(train_config.trained_model_path))
-    device = torch.device("cuda:{}".format(train_config.gpu) if torch.cuda.is_available() else "cpu")
-    net.to(device)
+    
+    # device = torch.device("cuda:{}".format(train_config.gpu) if torch.cuda.is_available() else "cpu")
+    # net.to(device)
+    net = torch.nn.DataParallel(net, device_ids=train_config.gpus).cuda()
+
     optimizer = None
     if train_config.optimizer == 'adagrad':
         optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
@@ -96,8 +101,11 @@ def train(net, train_config):
         train_loss = 0.0
         iter_count = 0
         for i, data in enumerate(train_dataloader):
-            inputs = data[0].to(device)
-            labels = data[1].to(device)
+            # inputs = data[0].to(device)
+            # labels = data[1].to(device)
+            inputs = data[0].cuda()
+            labels = data[1].cuda()
+
             optimizer.zero_grad()
             outputs = net(inputs)
             loss = criterion(outputs, labels.squeeze(1).long())
@@ -120,7 +128,7 @@ def train(net, train_config):
         train_loss /= iter_count
 
         ### validate
-        global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou = validate.validate(net, valset, batch_size, device, criterion)
+        global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou = validate.validate(net, valset, batch_size, train_config.gpus, criterion)
 
         if best_global_accuracy is None or best_global_accuracy < global_accuracy:
             log('save model')

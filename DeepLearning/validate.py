@@ -71,11 +71,13 @@ def validate(net, valset, batch_size, device, criterion):
     val_loss = 0
     with torch.no_grad():
         for i, data in enumerate(val_dataloader):
-            inputs = data[0].to(device)
+            # inputs = data[0].to(device)
+            inputs = data[0].cuda()
             if inputs.size()[0] <= 1:
                 print('skip batch of size: {}'.format(inputs.size()))
                 continue
-            labels = data[1].to(device)
+            labels = data[1].cuda()
+            # labels = data[1].to(device)
             outputs = net(inputs)
             loss = criterion(outputs, labels.squeeze(1).long())
             _, preds = torch.max(outputs, 1)
