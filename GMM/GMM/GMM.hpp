@@ -99,6 +99,80 @@ namespace GMM {
 		}
 	};
 
+	struct GaussianDistribution1D {
+		double Expectation = 0;
+		double Variance = 0.1;
+		double Evaluate(double X) const {
+			return (1.0 / (std::sqrt(2.0 * PI * Variance))) * std::pow(E, -0.5 * std::pow(X - Expectation, 2) / Variance);
+		}
+	};
+
+	struct GaussianDistribution3D {
+		cv::Vec3d Expectation = { 0, 0, 0 };
+		cv::Mat VarianceMat = (cv::Mat_<double>(3, 3) << 0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1);
+		double Cache1 = 0;
+		cv::Mat Cache2;
+		bool UseCache = true;
+		double Evaluate(const cv::Vec3d& X) const {
+			auto TmpMat = cv::Mat(X - Expectation).t();
+			if (!UseCache) {
+				return 1.0 / std::sqrt(std::pow(2.0 * PI, 3) * cv::determinant(VarianceMat))
+					* std::pow(E, -0.5 * (TmpMat * VarianceMat.inv()).dot(TmpMat));
+			}
+			else {
+				return Cache1
+					* std::pow(E, -0.5 * (TmpMat * Cache2).dot(TmpMat));
+			}
+		}
+		void UpdateCache() {
+			Cache1 = 1.0 / std::sqrt(std::pow(2.0 * PI, 3) * cv::determinant(VarianceMat));
+			Cache2 = VarianceMat.inv();
+		}
+	};
+
+	struct EMContext {
+		int IterationCount = 0;
+		virtual std::string ToString() const = 0;
+	};
+
+	struct MixtureModel {
+		virtual void EStep(const cv::Mat& InImage) = 0;
+		virtual void MStep(const cv::Mat& InImage, EMContext& Context) = 0;
+		virtual std::string TypeString() const = 0;
+		virtual std::string ToString() const = 0;
+	};
+
+	struct EMAlgorithm {
+		struct StopCondition
+		{
+			virtual bool IsSatisfied(const EMContext& Context) const = 0;
+			virtual std::string ToString() const = 0;
+		};
+		static void Train(MixtureModel& Model, const cv::Mat& InImage,
+			EMContext& Context, const StopCondition& Condition) {
+			printf("**************** Train %s ****************\n", Model.TypeString().c_str());
+			printf("Model: \n%s", Model.ToString().c_str());
+			printf("Context: \n%s\n", Context.ToString().c_str());
+			// 迭代求解
+			while (!Condition.IsSatisfied(Context)) {
+				printf("======== Iter #%d ========\n", Context.IterationCount + 1);
+				// E-Step
+				Model.EStep(InImage);
+				// M-Step
+				Model.MStep(InImage,Context);
+				// Update Context
+				Context.IterationCount++;
+				printf("Model: \n%s", Model.ToString().c_str());
+				printf("Context: \n%s\n", Context.ToString().c_str());
+			}
+			printf("-------- ModifiedGMMSegmentation End --------\n");
+			printf("Model: \n%s", Model.ToString().c_str());
+			printf("Context: \n%s\n", Context.ToString().c_str());
+		}
+	};
+
+
+
 	static void KMeansGray(const cv::Mat& InImage, const int K, std::vector<double>& OutMeans) {
 		printf("-------- K-Means --------\n");
 		OutMeans.resize(K);
@@ -297,20 +371,12 @@ namespace GMM {
 		int K = Arg.mComponentCount;
 		assert(K > 1);
 		//////////////// Type Def ////////////////
-		struct GaussianDistribution {
-			double Expectation = 0;
-			double Variance = 0.1;
-			double Evaluate(double X) const {
-				return (1.0 / (std::sqrt(2.0 * PI * Variance))) * std::pow(E, -0.5 * std::pow(X - Expectation, 2) / Variance);
-			}
-		};
-
 		struct GaussianMixtureModel {
-			std::vector<GaussianDistribution> GaussianDistributions;
+			std::vector<GaussianDistribution1D> GaussianDistributions;
 			std::vector<double> MixtureCoefficients;
 
 			GaussianMixtureModel(const int K) :
-				GaussianDistributions(std::vector<GaussianDistribution>(K)),
+				GaussianDistributions(std::vector<GaussianDistribution1D>(K)),
 				MixtureCoefficients(std::vector<double>(K)) {
 			}
 
@@ -318,7 +384,7 @@ namespace GMM {
 				FILE* File = fopen(Filename, "wb");
 				auto DistSize = GaussianDistributions.size();
 				fwrite(&DistSize, sizeof(GaussianDistributions.size()), 1, File);
-				fwrite(&GaussianDistributions[0], sizeof(GaussianDistribution), DistSize, File);
+				fwrite(&GaussianDistributions[0], sizeof(GaussianDistribution1D), DistSize, File);
 				auto MixSize = MixtureCoefficients.size();
 				fwrite(&MixSize, sizeof(MixtureCoefficients.size()), 1, File);
 				fwrite(&MixtureCoefficients[0], sizeof(double), MixSize, File);
@@ -331,7 +397,7 @@ namespace GMM {
 
 				fread(&DistSize, sizeof(size_t), 1, File);
 				GaussianDistributions.resize(DistSize);
-				fread(&GaussianDistributions[0], sizeof(GaussianDistribution), DistSize, File);
+				fread(&GaussianDistributions[0], sizeof(GaussianDistribution1D), DistSize, File);
 
 				fread(&MixSize, sizeof(size_t), 1, File);
 				MixtureCoefficients.resize(MixSize);
@@ -354,12 +420,12 @@ namespace GMM {
 				return MixtureCoefficients[Index];
 			}
 
-			GaussianDistribution& GetGaussianDistribution(int Index) {
+			GaussianDistribution1D& GetGaussianDistribution(int Index) {
 				assert(0 <= Index && Index < Count());
 				return GaussianDistributions[Index];
 			}
 
-			const GaussianDistribution& GetGaussianDistribution(int Index) const {
+			const GaussianDistribution1D& GetGaussianDistribution(int Index) const {
 				assert(0 <= Index && Index < Count());
 				return GaussianDistributions[Index];
 			}
@@ -470,7 +536,7 @@ namespace GMM {
 				auto& OldCoeff = Model.GetMixtureCoefficient(i);
 				auto& OldGaussianDistrib = Model.GetGaussianDistribution(i);
 				auto NewCoeff = SumProbility / N;
-				GaussianDistribution NewGaussianDistrib;
+				GaussianDistribution1D NewGaussianDistrib;
 				NewGaussianDistrib.Expectation = SumExpectation / SumProbility;
 
 				double SumVariance = 0.0;
@@ -548,35 +614,12 @@ namespace GMM {
 		int K = Arg.mComponentCount;
 		assert(K > 1);
 		//////////////// Type Def ////////////////
-		struct GaussianDistribution {
-			cv::Vec3d Expectation = { 0, 0, 0 };
-			cv::Mat VarianceMat = (cv::Mat_<double>(3, 3) << 0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1);
-			double Cache1 = 0;
-			cv::Mat Cache2;
-			bool UseCache = true;
-			double Evaluate(const cv::Vec3d& X) const {
-				auto TmpMat = cv::Mat(X - Expectation).t();
-				if (!UseCache) {
-					return 1.0 / std::sqrt(std::pow(2.0 * PI, 3) * cv::determinant(VarianceMat))
-						* std::pow(E, -0.5 * (TmpMat * VarianceMat.inv()).dot(TmpMat));
-				}
-				else {
-					return Cache1
-						* std::pow(E, -0.5 * (TmpMat * Cache2).dot(TmpMat));
-				}
-			}
-			void UpdateCache() {
-				Cache1 = 1.0 / std::sqrt(std::pow(2.0 * PI, 3) * cv::determinant(VarianceMat));
-				Cache2 = VarianceMat.inv();
-			}
-		};
-
 		struct GaussianMixtureModel {
-			std::vector<GaussianDistribution> GaussianDistributions;
+			std::vector<GaussianDistribution3D> GaussianDistributions;
 			std::vector<double> MixtureCoefficients;
 
 			GaussianMixtureModel(const int K) :
-				GaussianDistributions(std::vector<GaussianDistribution>(K)),
+				GaussianDistributions(std::vector<GaussianDistribution3D>(K)),
 				MixtureCoefficients(std::vector<double>(K)) {
 			}
 
@@ -594,12 +637,12 @@ namespace GMM {
 				return MixtureCoefficients[Index];
 			}
 
-			GaussianDistribution& GetGaussianDistribution(int Index) {
+			GaussianDistribution3D& GetGaussianDistribution(int Index) {
 				assert(0 <= Index && Index < Count());
 				return GaussianDistributions[Index];
 			}
 
-			const GaussianDistribution& GetGaussianDistribution(int Index) const {
+			const GaussianDistribution3D& GetGaussianDistribution(int Index) const {
 				assert(0 <= Index && Index < Count());
 				return GaussianDistributions[Index];
 			}
@@ -835,24 +878,16 @@ namespace GMM {
 		int K = Arg.mComponentCount;
 		assert(K > 1);
 		//////////////// Type Def ////////////////
-		struct GaussianDistribution {
-			double Expectation = 0;
-			double Variance = 0.1;
-			double Evaluate(double X) const {
-				return (1.0 / (std::sqrt(2.0 * PI * Variance))) * std::pow(E, -0.5 * std::pow(X - Expectation, 2) / Variance);
-			}
-		};
-
 		struct GaussianMixtureModel {
 			int K, N;
-			std::vector<GaussianDistribution> GaussianDistributions;
+			std::vector<GaussianDistribution1D> GaussianDistributions;
 			std::vector<double> MixtureCoefficients;
 			std::vector<cv::Mat> PostProbility;
 			std::vector<double>GCache;
 			double LogLikehoodCache = 1;
 
 			GaussianMixtureModel(const int K, const int N) :K(K),N(N),
-				GaussianDistributions(std::vector<GaussianDistribution>(K)),
+				GaussianDistributions(std::vector<GaussianDistribution1D>(K)),
 				MixtureCoefficients(std::vector<double>(K * size_t(N))),
 				PostProbility(std::vector<cv::Mat>(K)),
 				GCache(std::vector<double>(K * size_t(N))){
@@ -862,7 +897,7 @@ namespace GMM {
 				FILE* File = fopen(Filename, "wb");
 				auto DistSize = GaussianDistributions.size();
 				fwrite(&DistSize, sizeof(GaussianDistributions.size()), 1, File);
-				fwrite(&GaussianDistributions[0], sizeof(GaussianDistribution), DistSize, File);
+				fwrite(&GaussianDistributions[0], sizeof(GaussianDistribution1D), DistSize, File);
 				auto MixSize = MixtureCoefficients.size();
 				fwrite(&MixSize, sizeof(MixtureCoefficients.size()), 1, File);
 				fwrite(&MixtureCoefficients[0], sizeof(double), MixSize, File);
@@ -875,7 +910,7 @@ namespace GMM {
 
 				fread(&DistSize, sizeof(size_t), 1, File);
 				GaussianDistributions.resize(DistSize);
-				fread(&GaussianDistributions[0], sizeof(GaussianDistribution), DistSize, File);
+				fread(&GaussianDistributions[0], sizeof(GaussianDistribution1D), DistSize, File);
 
 				fread(&MixSize, sizeof(size_t), 1, File);
 				MixtureCoefficients.resize(MixSize);
@@ -898,12 +933,12 @@ namespace GMM {
 				return MixtureCoefficients[KIndex * size_t(N) + NIndex];
 			}
 
-			GaussianDistribution& GetGaussianDistribution(int Index) {
+			GaussianDistribution1D& GetGaussianDistribution(int Index) {
 				assert(0 <= Index && Index < Count());
 				return GaussianDistributions[Index];
 			}
 
-			const GaussianDistribution& GetGaussianDistribution(int Index) const {
+			const GaussianDistribution1D& GetGaussianDistribution(int Index) const {
 				assert(0 <= Index && Index < Count());
 				return GaussianDistributions[Index];
 			}
@@ -1024,7 +1059,7 @@ namespace GMM {
 						}
 
 						auto& OldGaussianDistrib = GetGaussianDistribution(i);
-						GaussianDistribution NewGaussianDistrib;
+						GaussianDistribution1D NewGaussianDistrib;
 
 						// 期望
 						NewGaussianDistrib.Expectation = SumExpectation / SumProbility;
@@ -1221,39 +1256,16 @@ namespace GMM {
 		int K = Arg.mComponentCount;
 		assert(K > 1);
 		//////////////// Type Def ////////////////
-		struct GaussianDistribution {
-			cv::Vec3d Expectation = { 0,0,0 };
-			cv::Mat VarianceMat = (cv::Mat_<double>(3, 3) << 0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1);
-			double Cache1 = 0;
-			cv::Mat Cache2;
-			bool UseCache = true;
-			double Evaluate(const cv::Vec3d& X) const {
-				auto TmpMat = cv::Mat(X - Expectation).t();
-				if (!UseCache) {
-					return 1.0 / std::sqrt(std::pow(2.0 * PI, 3) * cv::determinant(VarianceMat))
-						* std::pow(E, -0.5 * (TmpMat * VarianceMat.inv()).dot(TmpMat));
-				}
-				else {
-					return Cache1
-						* std::pow(E, -0.5 * (TmpMat * Cache2).dot(TmpMat));
-				}
-			}
-			void UpdateCache() {
-				Cache1 = 1.0 / (std::sqrt(std::pow(2.0 * PI, 3) * cv::determinant(VarianceMat)));
-				Cache2 = VarianceMat.inv();
-			}
-		};
-
 		struct GaussianMixtureModel {
 			int K, N;
-			std::vector<GaussianDistribution> GaussianDistributions;
+			std::vector<GaussianDistribution3D> GaussianDistributions;
 			std::vector<double> MixtureCoefficients;
 			std::vector<cv::Mat> PostProbility;
 			std::vector<double>GCache;
 			double LogLikehoodCache = 1;
 
 			GaussianMixtureModel(const int K, const int N) :K(K), N(N),
-				GaussianDistributions(std::vector<GaussianDistribution>(K)),
+				GaussianDistributions(std::vector<GaussianDistribution3D>(K)),
 				MixtureCoefficients(std::vector<double>(K* size_t(N))),
 				PostProbility(std::vector<cv::Mat>(K)),
 				GCache(std::vector<double>(K* size_t(N))) {
@@ -1263,7 +1275,7 @@ namespace GMM {
 				FILE* File = fopen(Filename, "wb");
 				auto DistSize = GaussianDistributions.size();
 				fwrite(&DistSize, sizeof(GaussianDistributions.size()), 1, File);
-				fwrite(&GaussianDistributions[0], sizeof(GaussianDistribution), DistSize, File);
+				fwrite(&GaussianDistributions[0], sizeof(GaussianDistribution3D), DistSize, File);
 				auto MixSize = MixtureCoefficients.size();
 				fwrite(&MixSize, sizeof(MixtureCoefficients.size()), 1, File);
 				fwrite(&MixtureCoefficients[0], sizeof(double), MixSize, File);
@@ -1276,7 +1288,7 @@ namespace GMM {
 
 				fread(&DistSize, sizeof(size_t), 1, File);
 				GaussianDistributions.resize(DistSize);
-				fread(&GaussianDistributions[0], sizeof(GaussianDistribution), DistSize, File);
+				fread(&GaussianDistributions[0], sizeof(GaussianDistribution3D), DistSize, File);
 
 				fread(&MixSize, sizeof(size_t), 1, File);
 				MixtureCoefficients.resize(MixSize);
@@ -1299,12 +1311,12 @@ namespace GMM {
 				return MixtureCoefficients[KIndex * size_t(N) + NIndex];
 			}
 
-			GaussianDistribution& GetGaussianDistribution(int Index) {
+			GaussianDistribution3D& GetGaussianDistribution(int Index) {
 				assert(0 <= Index && Index < Count());
 				return GaussianDistributions[Index];
 			}
 
-			const GaussianDistribution& GetGaussianDistribution(int Index) const {
+			const GaussianDistribution3D& GetGaussianDistribution(int Index) const {
 				assert(0 <= Index && Index < Count());
 				return GaussianDistributions[Index];
 			}
@@ -1430,7 +1442,7 @@ namespace GMM {
 						}
 
 						auto& OldGaussianDistrib = GetGaussianDistribution(i);
-						GaussianDistribution NewGaussianDistrib;
+						GaussianDistribution3D NewGaussianDistrib;
 
 						// 期望
 						NewGaussianDistrib.Expectation = SumExpectation / SumProbility;
@@ -1678,8 +1690,6 @@ namespace GMM {
 			Pixel = Step * MaxI;
 		}
 		);
-
-		//Model.WritePostProbility();
 	}
 
 	static void TestSegmentation(const char* InputImageName, const SegArg& Arg) {
