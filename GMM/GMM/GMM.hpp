@@ -27,12 +27,82 @@ namespace CV {
 }
 
 namespace GMM {
+	struct SegArg {
+		enum class ESegType{GMMGray, GMMColor, KMeansGray, KMeansColor, MGMMGray, MGMMColor};
+		int mMaxIterationCount = 20;
+		double mDVarThreshold = 0.001;
+		double mDExpThreshold = 0.001;
+		double mDCoeThreshold = 0.001;
+		double mDLogLikehoodThreshold = 100;
+		int mComponentCount = 4;
+		bool mKMeansInitialized = false;
+		bool mRandomSeed = false;
+		ESegType mSegType = ESegType::GMMGray;
+		const char* mInputModel = nullptr;
+		const char* mOutputModel = nullptr;
+		SegArg& MaxIterationCount(int Count) {
+			this->mMaxIterationCount = Count;
+			return *this;
+		}
+
+		SegArg& DVarThreshold(double Threshold) {
+			this->mDVarThreshold = Threshold;
+			return *this;
+		}		
+		
+		SegArg& DExpThreshold(double Threshold) {
+			this->mDExpThreshold = Threshold;
+			return *this;
+		}
+		SegArg& DCoeThreshold(double Threshold) {
+			this->mDCoeThreshold = Threshold;
+			return *this;
+		}
+		
+		SegArg& DLogLikehoodThreshold(double Threshold) {
+			this->mDLogLikehoodThreshold = Threshold;
+			return *this;
+		}
+
+		SegArg& ComponentCount(int Count) {
+			this->mComponentCount = Count;
+			return *this;
+		}
+
+		SegArg& KMeansInitialized(bool UseKMeans) {
+			this->mKMeansInitialized = UseKMeans;
+			return *this;
+		}
+
+		SegArg& RandomSeed(bool Random) {
+			this->mRandomSeed = Random;
+			return *this;
+		}
+
+		SegArg& SegType(SegArg::ESegType Type) {
+			this->mSegType = Type;
+			return *this;
+		}
+
+		SegArg& InputModel(const char* Model) {
+			this->mInputModel = Model;
+			return *this;
+		}
+
+		SegArg& OutputModel(const char* Model) {
+			this->mOutputModel = Model;
+			return *this;
+		}
+
+		bool IsGray() const {
+			return this->mSegType == ESegType::GMMGray || this->mSegType == ESegType::MGMMGray || this->mSegType == ESegType::KMeansGray;
+		}
+	};
 
 	static void KMeansGray(const cv::Mat& InImage, const int K, std::vector<double>& OutMeans) {
 		printf("-------- K-Means --------\n");
 		OutMeans.resize(K);
 		// 随机初始化
-		//std::srand(std::time(NULL));
 		for (int i = 0; i < K; i++) {
 			int RandRow = std::rand() % InImage.rows;
 			int RandCol = std::rand() % InImage.cols;
@@ -93,7 +163,6 @@ namespace GMM {
 		printf("-------- K-Means --------\n");
 		OutMeans.resize(K);
 		// 随机初始化
-		//std::srand(std::time(NULL));
 		for (int i = 0; i < K; i++) {
 			int RandRow = std::rand() % InImage.rows;
 			int RandCol = std::rand() % InImage.cols;
@@ -161,9 +230,10 @@ namespace GMM {
 		} while (HasMeansUpdated);
 	}
 
-	static void KMeansSegmentationGray(const cv::Mat& InImage, const int K, cv::Mat& OutImage) {
+	static void KMeansSegmentationGray(const cv::Mat& InImage, cv::Mat& OutImage, const SegArg& Arg) {
+		int K = Arg.mComponentCount;
 		std::vector<double> Means;
-		KMeansGray(InImage, K, Means);
+		KMeansGray(InImage, Arg.mComponentCount, Means);
 		printf("-------- Segmentation --------\n");
 		printf("Means: \[");
 		for (int i = 0; i < Means.size(); i++) {
@@ -188,9 +258,10 @@ namespace GMM {
 		});
 	}
 
-	static void KMeansSegmentationColor(const cv::Mat& InImage, const int K, cv::Mat& OutImage) {
+	static void KMeansSegmentationColor(const cv::Mat& InImage, cv::Mat& OutImage, const SegArg& Arg) {
+		int K = Arg.mComponentCount;
 		std::vector<cv::Vec3d> Means;
-		KMeansColor(InImage, K, Means);
+		KMeansColor(InImage, Arg.mComponentCount, Means);
 		printf("-------- Segmentation --------\n");
 		printf("Means: \[");
 		for (int i = 0; i < Means.size(); i++) {
@@ -222,8 +293,8 @@ namespace GMM {
 		});
 	}
 
-	static void GMMSegmentationGray(const cv::Mat& InImage, const int K, cv::Mat& OutImage,
-		const char* OutputModel = nullptr, const char* InputModel = nullptr) {
+	static void GMMSegmentationGray(const cv::Mat& InImage, cv::Mat& OutImage, const SegArg& Arg) {
+		int K = Arg.mComponentCount;
 		assert(K > 1);
 		//////////////// Type Def ////////////////
 		struct GaussianDistribution {
@@ -427,9 +498,9 @@ namespace GMM {
 		Context Context(K);
 		Initialize(Model, Probility, InImage);
 
-		if (InputModel) {
-			printf("Load model %s\n", InputModel);
-			Model.Load(InputModel);
+		if (Arg.mInputModel) {
+			printf("Load model %s\n", Arg.mInputModel);
+			Model.Load(Arg.mInputModel);
 		}
 		else {
 			printf("-------- BEGIN --------\n");
@@ -450,9 +521,9 @@ namespace GMM {
 			printf("Context: \n%s", Context.ToString().c_str());
 		}
 
-		if (OutputModel) {
-			printf("Save model to %s\n", OutputModel);
-			Model.Save(OutputModel);
+		if (Arg.mOutputModel) {
+			printf("Save model to %s\n", Arg.mOutputModel);
+			Model.Save(Arg.mOutputModel);
 		}
 
 		//////////////// Segmenation ////////////////
@@ -473,7 +544,8 @@ namespace GMM {
 		);
 	}
 
-	static void GMMSegmentationColor(const cv::Mat& InImage, const int K, cv::Mat& OutImage) {
+	static void GMMSegmentationColor(const cv::Mat& InImage, cv::Mat& OutImage, const SegArg& Arg) {
+		int K = Arg.mComponentCount;
 		assert(K > 1);
 		//////////////// Type Def ////////////////
 		struct GaussianDistribution {
@@ -759,8 +831,8 @@ namespace GMM {
 		);
 	}
 
-	static void ModifiedGMMSegmentationGray(const cv::Mat& InImage, const int K, cv::Mat& OutImage,
-		const char* OutputModel = nullptr, const char* InputModel = nullptr) {
+	static void ModifiedGMMSegmentationGray(const cv::Mat& InImage, cv::Mat& OutImage, const SegArg& Arg) {
+		int K = Arg.mComponentCount;
 		assert(K > 1);
 		//////////////// Type Def ////////////////
 		struct GaussianDistribution {
@@ -1094,9 +1166,9 @@ namespace GMM {
 		//// 初始化
 		Model.Initialize(InImage);
 
-		if (InputModel) {
-			printf("Load model %s\n", InputModel);
-			Model.Load(InputModel);
+		if (Arg.mInputModel) {
+			printf("Load model %s\n", Arg.mInputModel);
+			Model.Load(Arg.mInputModel);
 		}
 		else {
 			printf("-------- ModifiedGMMSegmentation BEGIN --------\n");
@@ -1119,9 +1191,9 @@ namespace GMM {
 			printf("Context: \n%s\n", Context.ToString().c_str());
 		}
 
-		if (OutputModel) {
-			printf("Save model to %s\n", OutputModel);
-			Model.Save(OutputModel);
+		if (Arg.mOutputModel) {
+			printf("Save model to %s\n", Arg.mOutputModel);
+			Model.Save(Arg.mOutputModel);
 		}
 
 		////////////////// Segmenation ////////////////
@@ -1145,8 +1217,8 @@ namespace GMM {
 		//Model.WritePostProbility();
 	}
 
-	static void ModifiedGMMSegmentationColor(const cv::Mat& InImage, const int K, cv::Mat& OutImage,
-		const char* OutputModel = nullptr, const char* InputModel = nullptr) {
+	static void ModifiedGMMSegmentationColor(const cv::Mat& InImage, cv::Mat& OutImage, const SegArg& Arg) {
+		int K = Arg.mComponentCount;
 		assert(K > 1);
 		//////////////// Type Def ////////////////
 		struct GaussianDistribution {
@@ -1559,9 +1631,9 @@ namespace GMM {
 		//// 初始化
 		Model.Initialize(InImage);
 
-		if (InputModel) {
-			printf("Load model %s\n", InputModel);
-			Model.Load(InputModel);
+		if (Arg.mInputModel) {
+			printf("Load model %s\n", Arg.mInputModel);
+			Model.Load(Arg.mInputModel);
 		}
 		else {
 			printf("-------- ModifiedGMMSegmentation BEGIN --------\n");
@@ -1584,9 +1656,9 @@ namespace GMM {
 			printf("Context: \n%s\n", Context.ToString().c_str());
 		}
 
-		if (OutputModel) {
-			printf("Save model to %s\n", OutputModel);
-			Model.Save(OutputModel);
+		if (Arg.mOutputModel) {
+			printf("Save model to %s\n", Arg.mOutputModel);
+			Model.Save(Arg.mOutputModel);
 		}
 
 		////////////////// Segmenation ////////////////
@@ -1610,128 +1682,88 @@ namespace GMM {
 		//Model.WritePostProbility();
 	}
 
-	static void TestGMMSegmentation(const char* InputImageName, int K = 4, const char* OutputModel = nullptr, const char* InputModel = nullptr) {
-		cv::Mat InputImage;
-		if (CV::ReadImage(InputImageName, InputImage, cv::IMREAD_GRAYSCALE)) {
+	static void TestSegmentation(const char* InputImageName, const SegArg& Arg) {
+		bool OK = true;
+		cv::Mat InputImage, SegmentedImg;
+		
+		if (Arg.IsGray()) {
+			OK = CV::ReadImage(InputImageName, InputImage, cv::IMREAD_GRAYSCALE);
 			InputImage.convertTo(InputImage, CV_64FC1, 1.0 / 255.0);
-
-			cv::Mat SegmentedImg;
-			GMMSegmentationGray(InputImage, K, SegmentedImg, OutputModel, InputModel);
-
-			CV::DisplayImage(InputImage, "Origin");
-			CV::DisplayImage(SegmentedImg, "Segmented");
 		}
 		else {
-			printf("read image fail\n");
-		}
-	}	
-	
-	static void TestGMMSegmentationColor(const char* InputImageName, int K = 4, const char* OutputModel = nullptr, const char* InputModel = nullptr) {
-		cv::Mat InputImage;
-		if (CV::ReadImage(InputImageName, InputImage, cv::IMREAD_COLOR)) {
-			InputImage.convertTo(InputImage, CV_64FC1, 1.0 / 255.0);
-
-			cv::Mat SegmentedImg;
-			GMMSegmentationColor(InputImage, K, SegmentedImg);
-
-			CV::DisplayImage(InputImage, "Origin");
-			CV::DisplayImage(SegmentedImg, "Segmented");
-		}
-		else {
-			printf("read image fail\n");
-		}
-	}
-
-	static void TestModifiedGMMSegmentation(const char* InputImageName, int K = 4 , const char* OutputModel = nullptr, const char* InputModel = nullptr) {
-		cv::Mat InputImage;
-		if (CV::ReadImage(InputImageName, InputImage, cv::IMREAD_GRAYSCALE)) {
-			InputImage.convertTo(InputImage, CV_64FC1, 1.0 / 255.0);
-
-			cv::Mat SegmentedImg;
-			ModifiedGMMSegmentationGray(InputImage, K, SegmentedImg, OutputModel, InputModel);
-
-			CV::DisplayImage(InputImage, "Origin");
-			CV::DisplayImage(SegmentedImg, "Segmented");
-		}
-		else {
-			printf("read image fail\n");
-		}
-	}
-
-	static void TestModifiedGMMSegmentationColor(const char* InputImageName, int K = 4) {
-		cv::Mat InputImage;
-		if (CV::ReadImage(InputImageName, InputImage, cv::IMREAD_COLOR)) {
+			OK = CV::ReadImage(InputImageName, InputImage, cv::IMREAD_COLOR);
 			InputImage.convertTo(InputImage, CV_64FC3, 1.0 / 255.0);
-
-			cv::Mat SegmentedImg;
-			ModifiedGMMSegmentationColor(InputImage, K, SegmentedImg);
-
-			CV::DisplayImage(InputImage, "Origin");
-			CV::DisplayImage(SegmentedImg, "Segmented");
-			CV::Wait(0);
 		}
-		else {
+
+		switch (Arg.mSegType)
+		{
+		case SegArg::ESegType::GMMColor:
+			GMMSegmentationColor(InputImage, SegmentedImg, Arg);
+			break;
+		case SegArg::ESegType::GMMGray:
+			GMMSegmentationGray(InputImage, SegmentedImg, Arg);
+			break;
+		case SegArg::ESegType::MGMMColor:
+			ModifiedGMMSegmentationColor(InputImage, SegmentedImg, Arg);
+			break;
+		case SegArg::ESegType::MGMMGray:
+			ModifiedGMMSegmentationGray(InputImage, SegmentedImg, Arg);
+			break;
+		case SegArg::ESegType::KMeansColor:
+			KMeansSegmentationColor(InputImage, SegmentedImg, Arg);
+			break;
+		case SegArg::ESegType::KMeansGray:
+			KMeansSegmentationGray(InputImage, SegmentedImg, Arg);
+			break;
+		default:
+			break;
+		}
+
+		if (!OK) {
 			printf("read image fail\n");
 		}
-	}
-
-	static void TestKMeansSegmentation(const char* InputImageName) {
-		cv::Mat InputImage;
-		if (CV::ReadImage(InputImageName, InputImage, cv::IMREAD_GRAYSCALE)) {
-			InputImage.convertTo(InputImage, CV_64FC1, 1.0 / 255.0);
-
-			cv::Mat SegmentedImg;
-			KMeansSegmentationGray(InputImage, 4, SegmentedImg);
-
+		else {
 			CV::DisplayImage(InputImage, "Origin");
 			CV::DisplayImage(SegmentedImg, "Segmented");
-		}
-		else {
-			printf("read image fail\n");
-		}
-	}
-	
-	static void TestKMeansSegmentationColor(const char* InputImageName, int K = 4) {
-		cv::Mat InputImage;
-		if (CV::ReadImage(InputImageName, InputImage, cv::IMREAD_COLOR)) {
-			InputImage.convertTo(InputImage, CV_64FC1, 1.0 / 255.0);
-
-			cv::Mat SegmentedImg;
-			KMeansSegmentationColor(InputImage, K, SegmentedImg);
-
-			CV::DisplayImage(InputImage, "Origin");
-			CV::DisplayImage(SegmentedImg, "Segmented");
-		}
-		else {
-			printf("read image fail\n");
 		}
 	}
 
 	static void Main() {
-		std::string InputImageName;
-		int K;
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\blog\\002\\0.png";
-		InputImageName = "D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f02970.png";
-		InputImageName = "D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f00300.png";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\grid.PNG";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse2.PNG";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\Lenna.jpg";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\elephant.PNG";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\leaf.jpg";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\snow.PNG";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\cow.PNG";
-		InputImageName = "C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse1.PNG";
-		K = 3;
-		K = 4;
-		K = 2;
-		std::srand(time(NULL));
-		//TestKMeansSegmentation(InputImageName.c_str());
-		//TestKMeansSegmentationColor(InputImageName.c_str(), K);
-		//TestGMMSegmentation(InputImageName.c_str(), K);
-		TestGMMSegmentationColor(InputImageName.c_str(), K);
-		//TestModifiedGMMSegmentation(InputImageName.c_str(), K);
-		//TestKMeansSegmentationColor(InputImageName.c_str(), K);
-		//TestModifiedGMMSegmentationColor(InputImageName.c_str(), K);
+		std::vector<std::pair<const char*, int>>TestData{
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\blog\\002\\0.png", 4						},
+			{"D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f02970.png", 4	},
+			{"D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f00300.png", 4	},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\grid.PNG", 4						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse2.PNG", 2						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\Lenna.jpg", 4						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\elephant.PNG", 2					},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\leaf.jpg", 2						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\snow.PNG", 3						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\cow.PNG", 4						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse1.PNG", 2						},
+		};
+
+		TestSegmentation(
+			TestData.back().first,
+			SegArg()
+				.RandomSeed(true)
+				.InputModel(nullptr)
+				.DCoeThreshold(0.001)
+				.DExpThreshold(0.001)
+				.DVarThreshold(0.001)
+				.OutputModel(nullptr)
+				.MaxIterationCount(20)
+				.KMeansInitialized(true)
+				.DLogLikehoodThreshold(100)
+				.SegType(SegArg::ESegType::GMMGray)
+				.SegType(SegArg::ESegType::GMMColor)
+				.SegType(SegArg::ESegType::MGMMGray)
+				.SegType(SegArg::ESegType::MGMMColor)
+				.SegType(SegArg::ESegType::KMeansGray)
+				.SegType(SegArg::ESegType::KMeansColor)
+				.ComponentCount(TestData.back().second)
+		);
+
 		CV::Wait();
 	}
 }
