@@ -43,7 +43,7 @@ class TrainConfig:
         self.split = split
         self.gpu = gpu
         self.gpus=gpus
-        self.num_classes
+        self.num_classes = num_classes
 
 
 def train(net, train_config):
