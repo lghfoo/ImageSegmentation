@@ -147,7 +147,7 @@ def train(net, train_config):
         log("train_loss: " + str(train_loss))
         log("val_loss: " + str(val_loss))
         train_info.append((mIoU, classes_avg_accuracy, global_accuracy, train_loss, val_loss))
-        for i in range(net.num_classes):
+        for i in range(train_config.num_classes):
             log('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, classes_iou[i], classes_accuracy[i], validate.get_dataset_classes(train_config.dataset)[i]))
 
     for epoch in range(epoch_count):
