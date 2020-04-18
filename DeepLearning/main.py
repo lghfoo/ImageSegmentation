@@ -161,6 +161,8 @@ def train(args):
         config.split = args.sp
     if args.gpu is not None:
         config.gpu = args.gpu
+    if args.gpus is not None:
+        config.gpus = [int(g.strip()) for g in args.gpus.split(',')]
     trainer.train(net, config)
 
 def test(args):
@@ -177,6 +179,8 @@ def test(args):
         config.dataset = args.ds
     if args.sp is not None:
         config.split = args.sp
+    if args.gpus is not None:
+        config.gpus = [int(g.strip()) for g in args.gpus.split(',')]
     tester.test(net, config)
 
 def predict(args):
@@ -231,6 +235,7 @@ def main():
     parser.add_argument('-iml', help='input images list file to predict')
     parser.add_argument('-sp', help='the split to test')
     parser.add_argument('-gpu', help='the gpu to use')
+    parser.add_argument('-gpus', help='the gpus to use')
     args = parser.parse_args()
     if args.train is not None:
         train(args)
