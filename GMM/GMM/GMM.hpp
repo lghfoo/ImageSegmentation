@@ -875,123 +875,17 @@ namespace GMM {
 
 
 		virtual void EStep(const cv::Mat& InImage) override {
-			printf(">>>>>>>>>>>>>>>> E-Step....\n");
-			for (int i = 0; i < K; i++) {
-				printf("Estimate %d/%d\n", i + 1, K);
-				for (int NIndex = 0; NIndex < N; NIndex++) {
-					double Up = MixtureCoefficients.at(i * size_t(N) + NIndex) * GaussianDistributions.at(i).Evaluate(InImage.at<double>(NIndex));
-					double Sum = 1e-9;
-					for (int j = 0; j < K; j++) {
-						Sum += MixtureCoefficients.at(j * size_t(N) + NIndex) * GaussianDistributions.at(j).Evaluate(InImage.at<double>(NIndex));
-					}
-					PostProbability[i].at<double>(NIndex) = Up / Sum;
-				}
-			}
+			ModifiedGaussianMixtureModelEMStepper::EStep<GaussianDistribution1D>(
+				InImage, K, N, MixtureCoefficients,
+				GaussianDistributions, PostProbability
+			);
 		}
 
 		virtual void MStep(const cv::Mat& InImage) override {
-			printf(">>>>>>>>>>>>>>>> M-Step....\n");
-			// 计算上一次迭代的Gij
-			{
-				printf("Compute GCache....\n");
-				for (int i = 0; i < InImage.rows; i++) {
-					for (int j = 0; j < InImage.cols; j++) {
-						for (int k = 0; k < K; k++) {
-							int NIndex = i * InImage.cols + j;
-							GCache[k * size_t(N) + NIndex] = G(k, NIndex, InImage.rows, InImage.cols);
-						}
-					}
-				}
-			}
-
-			// 更新每个高斯分布
-			{
-				printf("Update Gaussian Parameters....\n");
-				for (int i = 0; i < K; i++) {
-					double SumProbility = 0.0;
-					double SumExpectation = 0.0;
-					for (int row = 0; row < PostProbability[i].rows; row++) {
-						for (int col = 0; col < PostProbability[i].cols; col++) {
-							SumProbility += PostProbability[i].at<double>(row, col);
-							SumExpectation += PostProbability[i].at<double>(row, col) * InImage.at<double>(row, col);
-						}
-					}
-
-					auto& OldGaussianDistrib = GaussianDistributions.at(i);
-					GaussianDistribution1D NewGaussianDistrib;
-
-					// 期望
-					NewGaussianDistrib.Expectation = SumExpectation / SumProbility;
-
-					// 方差
-					double SumVariance = 0.0;
-					for (int row = 0; row < PostProbability[i].rows; row++) {
-						for (int col = 0; col < PostProbability[i].cols; col++) {
-							SumVariance += PostProbability[i].at<double>(row, col) * Math::Square(InImage.at<double>(row, col) - NewGaussianDistrib.Expectation);
-						}
-					}
-					NewGaussianDistrib.Variance = SumVariance / SumProbility;
-
-					Context.DExp[i] = std::abs(OldGaussianDistrib.Expectation - NewGaussianDistrib.Expectation);
-					Context.DVar[i] = std::abs(OldGaussianDistrib.Variance - NewGaussianDistrib.Variance);
-					Context.DCoeff[i] = 0;
-
-					OldGaussianDistrib = NewGaussianDistrib;
-				}
-			}
-
-			// 更新系数
-			{
-				printf("Update Coefficient....\n");
-				for (int i = 0; i < InImage.rows; i++) {
-					for (int j = 0; j < InImage.cols; j++) {
-						int NIndex = i * InImage.cols + j;
-						double SumZG = 0.0;
-						for (int k = 0; k < K; k++) {
-							SumZG += (PostProbability[k].at<double>(i, j)
-								+ G(k, NIndex, InImage.rows, InImage.cols));
-						}
-
-						for (int k = 0; k < K; k++) {
-							auto ZG = (PostProbability[k].at<double>(i, j)
-								+ G(k, NIndex, InImage.rows, InImage.cols));
-							MixtureCoefficients.at(k * size_t(N) + NIndex) = ZG / SumZG;
-						}
-					}
-				}
-			}
-
-			// 计算似然函数
-			{
-				printf("Compute LogLikehood: ");
-				// first term
-				double FirstTerm = 0;
-				for (int i = 0; i < N; i++) {
-					double SumTemp = 1e-9;
-					for (int k = 0; k < K; k++) {
-						SumTemp += MixtureCoefficients.at(k * size_t(N) + i)
-							* GaussianDistributions[k].Evaluate(InImage.at<double>(i));
-					}
-					FirstTerm += std::log(SumTemp);
-				}
-				// second term
-				double SecondTerm = 0;
-				for (int i = 0; i < N; i++) {
-					double SumTemp = 1e-9;
-					for (int k = 0; k < K; k++) {
-						SumTemp += GCache[k * size_t(N) + i]
-							* std::log(MixtureCoefficients.at(k * size_t(N) + i));
-					}
-					SecondTerm += SumTemp;
-				}
-
-				auto LogLikehood = FirstTerm + SecondTerm;
-				if (LogLikehoodCache <= 0) {
-					Context.DLogLikehood = std::abs(LogLikehood - LogLikehoodCache);
-				}
-				LogLikehoodCache = LogLikehood;
-				printf("%f\n", LogLikehood);
-			}
+			ModifiedGaussianMixtureModelEMStepper::MStep<GaussianDistribution1D>(
+				InImage, K, N, PostProbability, Context, MixtureCoefficients,
+				GaussianDistributions, GCache, LogLikehoodCache
+			);
 		}
 
 		virtual std::string TypeString() const override {
@@ -1008,27 +902,6 @@ namespace GMM {
 				Stream << Buffer;
 			}
 			return Stream.str();
-		}
-
-		double G(int KIndex, int NIndex, int Rows, int Cols) {
-			const double Beta = 12;
-			const int WindSize = 5;
-			const int Ni = WindSize * WindSize;
-			double Sum = 0.0;
-			int Row = NIndex / Cols;
-			int Col = NIndex % Cols;
-			for (int i = -WindSize / 2; i <= WindSize / 2; i++) {
-				for (int j = -WindSize / 2; j <= WindSize / 2; j++) {
-					int R = Row + i, C = Col + j;
-					double Z = 0, M = 0;
-					if (0 <= R && R < Rows && 0 <= C && C < Cols) {
-						Z = PostProbability[KIndex].at<double>(R, C);
-						M = MixtureCoefficients.at(KIndex * size_t(N) + R * Cols + C);
-					}
-					Sum += (Z + M);
-				}
-			}
-			return std::pow(E, (Beta / (2.0 * Ni)) * Sum);
 		}
 		
 		virtual void Save(const char* Filename) const override {
@@ -1063,133 +936,18 @@ namespace GMM {
 		}
 
 		virtual void EStep(const cv::Mat& InImage) override {
-			this->UpdateCache();
-			printf(">>>>>>>>>>>>>>>> E-Step....\n");
-			for (int i = 0; i < K; i++) {
-				printf("Estimate %d/%d\n", i + 1, K);
-#pragma omp parallel for
-				for (int NIndex = 0; NIndex < N; NIndex++) {
-					double Up = MixtureCoefficients.at(i * size_t(N) + NIndex) * GaussianDistributions.at(i).Evaluate(InImage.at<cv::Vec3d>(NIndex));
-					double Sum = 1e-9;
-					for (int j = 0; j < K; j++) {
-						Sum += MixtureCoefficients.at(j * size_t(N) + NIndex) * GaussianDistributions.at(j).Evaluate(InImage.at<cv::Vec3d>(NIndex));
-					}
-					PostProbability[i].at<double>(NIndex) = Up / Sum;
-				}
-			}
+			ModifiedGaussianMixtureModelEMStepper::EStep<GaussianDistribution3D>(
+				InImage, K, N, MixtureCoefficients,
+				GaussianDistributions, PostProbability
+				);
 		}
 
 		virtual void MStep(const cv::Mat& InImage) override {
-			printf(">>>>>>>>>>>>>>>> M-Step....\n");
-			// 计算上一次迭代的Gij
-			{
-				printf("Compute GCache....\n");
-#pragma omp parallel for
-				for (int i = 0; i < InImage.rows; i++) {
-					for (int j = 0; j < InImage.cols; j++) {
-						for (int k = 0; k < K; k++) {
-							int NIndex = i * InImage.cols + j;
-							GCache[k * size_t(N) + NIndex] = G(k, NIndex, InImage.rows, InImage.cols);
-						}
-					}
-				}
-			}
-
-			// 更新每个高斯分布
-			{
-				printf("Update Gaussian Parameters....\n");
-				for (int i = 0; i < K; i++) {
-					double SumProbility = 0.0;
-					cv::Vec3d SumExpectation = 0.0;
-					for (int row = 0; row < PostProbability[i].rows; row++) {
-						for (int col = 0; col < PostProbability[i].cols; col++) {
-							SumProbility += PostProbability[i].at<double>(row, col);
-							SumExpectation += PostProbability[i].at<double>(row, col) * InImage.at<cv::Vec3d>(row, col);
-						}
-					}
-
-					auto& OldGaussianDistrib = GaussianDistributions.at(i);
-					GaussianDistribution3D NewGaussianDistrib;
-
-					// 期望
-					NewGaussianDistrib.Expectation = SumExpectation / SumProbility;
-
-					// 方差
-					cv::Mat SumVariance = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 0, 0, 0, 0, 0);
-					for (int row = 0; row < PostProbability[i].rows; row++) {
-						for (int col = 0; col < PostProbability[i].cols; col++) {
-							cv::Vec3d Diff = InImage.at<cv::Vec3d>(row, col) - NewGaussianDistrib.Expectation;
-							SumVariance += PostProbability[i].at<double>(row, col) * cv::Mat(Diff) * cv::Mat(Diff).t();
-						}
-					}
-					NewGaussianDistrib.Variance = SumVariance / SumProbility;
-
-					Context.DExp[i] = Math::Vec3dAbs(OldGaussianDistrib.Expectation - NewGaussianDistrib.Expectation);
-					Context.DVar[i] = Math::MatAbs(OldGaussianDistrib.Variance - NewGaussianDistrib.Variance);
-					Context.DCoeff[i] = 0;
-
-					OldGaussianDistrib = NewGaussianDistrib;
-				}
-			}
-
-			// 更新系数
-			{
-				printf("Update Coefficient....\n");
-#pragma omp parallel for
-				for (int i = 0; i < InImage.rows; i++) {
-					for (int j = 0; j < InImage.cols; j++) {
-						int NIndex = i * InImage.cols + j;
-						double SumZG = 0.0;
-						for (int k = 0; k < K; k++) {
-							SumZG += (PostProbability[k].at<double>(i, j)
-								+ G(k, NIndex, InImage.rows, InImage.cols));
-						}
-
-						for (int k = 0; k < K; k++) {
-							auto ZG = (PostProbability[k].at<double>(i, j)
-								+ G(k, NIndex, InImage.rows, InImage.cols));
-							MixtureCoefficients.at(k * size_t(N) + NIndex) = ZG / SumZG;
-						}
-					}
-				}
-			}
-
-			// 计算似然函数
-			{
-				printf("Compute LogLikehood: ");
-				this->UpdateCache();
-				// first term
-				double FirstTerm = 0;
-#pragma omp parallel for reduction (+:FirstTerm)
-				for (int i = 0; i < N; i++) {
-					double SumTemp = 1e-9;
-					for (int k = 0; k < K; k++) {
-						SumTemp += MixtureCoefficients.at(k * size_t(N) + i)
-							* GaussianDistributions[k].Evaluate(InImage.at<cv::Vec3d>(i));
-					}
-					FirstTerm += std::log(SumTemp);
-				}
-				// second term
-				double SecondTerm = 0;
-#pragma omp parallel for reduction (+:SecondTerm)
-				for (int i = 0; i < N; i++) {
-					double SumTemp = 1e-9;
-					for (int k = 0; k < K; k++) {
-						SumTemp += GCache[k * size_t(N) + i]
-							* std::log(MixtureCoefficients.at(k * size_t(N) + i));
-					}
-					SecondTerm += SumTemp;
-				}
-
-				auto LogLikehood = FirstTerm + SecondTerm;
-				if (LogLikehoodCache <= 0) {
-					Context.DLogLikehood = std::abs(LogLikehood - LogLikehoodCache);
-				}
-				LogLikehoodCache = LogLikehood;
-				printf("%f\n", LogLikehood);
-			}
+			ModifiedGaussianMixtureModelEMStepper::MStep<GaussianDistribution3D>(
+				InImage, K, N, PostProbability, Context, MixtureCoefficients,
+				GaussianDistributions, GCache, LogLikehoodCache
+				);
 		}
-
 		virtual std::string TypeString() const override {
 			return "ModifiedGaussianMixtureModel 3D";
 		}
@@ -1214,27 +972,6 @@ namespace GMM {
 
 		virtual void Load(const char* Filename) override {
 			ModelFileManager::Load<GaussianDistribution3D>(Filename, this->MixtureCoefficients, this->GaussianDistributions);
-		}
-
-		double G(int KIndex, int NIndex, int Rows, int Cols) {
-			const double Beta = 12;
-			const int WindSize = 5;
-			const int Ni = WindSize * WindSize;
-			double Sum = 0.0;
-			int Row = NIndex / Cols;
-			int Col = NIndex % Cols;
-			for (int i = -WindSize / 2; i <= WindSize / 2; i++) {
-				for (int j = -WindSize / 2; j <= WindSize / 2; j++) {
-					int R = Row + i, C = Col + j;
-					double Z = 0, M = 0;
-					if (0 <= R && R < Rows && 0 <= C && C < Cols) {
-						Z = PostProbability[KIndex].at<double>(R, C);
-						M = MixtureCoefficients.at(KIndex * size_t(N) + R * Cols + C);
-					}
-					Sum += (Z + M);
-				}
-			}
-			return std::pow(E, (Beta / (2.0 * Ni)) * Sum);
 		}
 
 		void UpdateCache() {
@@ -1432,10 +1169,10 @@ namespace GMM {
 			TestData.back().first,
 			Arg
 				.SegType(SegArg::ESegType::GMMColor)
-				.SegType(SegArg::ESegType::MGMMColor)
 				.SegType(SegArg::ESegType::KMeansColor)
 				.SegType(SegArg::ESegType::KMeansGray)
 				.SegType(SegArg::ESegType::GMMGray)
+				.SegType(SegArg::ESegType::MGMMColor)
 				.SegType(SegArg::ESegType::MGMMGray)
 		);
 
