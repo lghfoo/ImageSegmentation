@@ -108,6 +108,26 @@ namespace Math {
 		return VarianceSquare(cv::Mat(Input));
 	}
 
+	static void SumVariance(double& Variance, const double Diff, double Scale) {
+		Variance += Diff * Diff * Scale;
+	}
+
+	static void SumVariance(cv::Mat& VarianceMat, const cv::Vec3d& V, double Scale) {
+#define SUM_EQUAL(R, W) VarianceMat.at<double>(R, W) += V[R] * V[W] * Scale
+		SUM_EQUAL(0, 0);
+		SUM_EQUAL(0, 1);
+		SUM_EQUAL(0, 2);
+
+		SUM_EQUAL(1, 0);
+		SUM_EQUAL(1, 1);
+		SUM_EQUAL(1, 2);
+
+		SUM_EQUAL(2, 0);
+		SUM_EQUAL(2, 1);
+		SUM_EQUAL(2, 2);
+#undef SUM_EQUAL
+	}
+
 	static double Square(const double Input) { return Input * Input; }
 
 	static double Square(const cv::Vec3d& Input) { 
@@ -131,6 +151,7 @@ namespace Math {
 }
 
 namespace GMM {
+
 	struct SegArg {
 		enum class ESegType { GMMGray, GMMColor, KMeansGray, KMeansColor, MGMMGray, MGMMColor };
 
@@ -145,6 +166,8 @@ namespace GMM {
 		ESegType mSegType = ESegType::GMMGray;
 		const char* mInputModel = nullptr;
 		const char* mOutputModel = nullptr;
+		double mBeta = 12.0;
+		int mWindSize = 5;
 
 		SegArg& MaxIterationCount(int Count) {
 			this->mMaxIterationCount = Count;
@@ -201,6 +224,16 @@ namespace GMM {
 			return *this;
 		}
 
+		SegArg& Beta(const double Input) {
+			mBeta = Input;
+			return *this;
+		}
+
+		SegArg& WindSize(const int Input) {
+			mWindSize = Input;
+			return *this;
+		}
+
 		bool IsGray() const {
 			return this->mSegType == ESegType::GMMGray || this->mSegType == ESegType::MGMMGray || this->mSegType == ESegType::KMeansGray;
 		}
@@ -241,14 +274,40 @@ namespace GMM {
 		cv::Mat Cache2;
 		bool UseCache = true;
 		double Evaluate(const cv::Vec3d& X) const {
-			auto TmpMat = cv::Mat(X - Expectation).t();
 			if (!UseCache) {
+				auto TmpMat = cv::Mat(X - Expectation).t();
 				return 1.0 / std::sqrt(std::pow(2.0 * PI, 3) * cv::determinant(Variance))
 					* std::pow(E, -0.5 * (TmpMat * Variance.inv()).dot(TmpMat));
 			}
 			else {
-				return Cache1 * std::pow(E, -0.5 * (TmpMat * Cache2).dot(TmpMat));
+				return Cache1 * std::pow(E, -0.5 * FastEval(X));
 			}
+		}
+		double FastEval(const cv::Vec3d& X) const {
+			//auto TmpMat = cv::Mat(X - Expectation).t();
+			//return (TmpMat * Cache2).dot(TmpMat);
+			
+			auto V0 = X[0] - Expectation[0],
+				V1 = X[1] - Expectation[1],
+				V2 = X[2] - Expectation[2];
+			
+			auto A00 = Cache2.at<double>(0, 0),
+				A01 = Cache2.at<double>(0, 1),
+				A02 = Cache2.at<double>(0, 2),
+				A10 = Cache2.at<double>(1, 0),
+				A11 = Cache2.at<double>(1, 1),
+				A12 = Cache2.at<double>(1, 2),
+				A20 = Cache2.at<double>(2, 0),
+				A21 = Cache2.at<double>(2, 1),
+				A22 = Cache2.at<double>(2, 2);
+
+			return V0 * (V0 * A00 + V1 * A10 + V2 * A20)
+				+ V1 * (V0 * A01 + V1 * A11 + V2 * A21)
+				+ V2 * (V0 * A02 + V1 * A12 + V2 * A22);
+
+			// use avx?
+
+			//return 1;
 		}
 		void UpdateCache() {
 			Cache1 = 1.0 / std::sqrt(std::pow(2.0 * PI, 3) * cv::determinant(Variance));
@@ -522,6 +581,7 @@ namespace GMM {
 			std::vector<double>& MixtureCoefficients,
 			const std::vector<cv::Mat>& PostProbability,
 			EMContext& Context) {
+#pragma omp parallel for
 			for (int i = 0; i < K; i++) {
 				double SumProbility = 0.0;
 				GaussianType::PixelType SumExpectation = 0.0;
@@ -537,11 +597,12 @@ namespace GMM {
 				auto NewCoeff = SumProbility / N;
 				auto NewGaussianDistribExpectation = SumExpectation / SumProbility;
 
-				typename GaussianType::VarianceType SumVariance = GaussianType::EmptyVariance();
+				auto SumVariance = GaussianType::EmptyVariance();
 				for (int row = 0; row < PostProbability[i].rows; row++) {
 					for (int col = 0; col < PostProbability[i].cols; col++) {
 						auto Diff = InImage.at<GaussianType::PixelType>(row, col) - NewGaussianDistribExpectation;
-						SumVariance += PostProbability[i].at<double>(row, col) * Math::VarianceSquare(Diff);
+						//SumVariance += PostProbability[i].at<double>(row, col) * Math::VarianceSquare(Diff);
+						Math::SumVariance(SumVariance, Diff, PostProbability[i].at<double>(row, col));
 					}
 				}
 				auto NewGaussianDistribVariance = SumVariance / SumProbility;
@@ -694,6 +755,7 @@ namespace GMM {
 			printf(">>>>>>>>>>>>>>>> E-Step....\n");
 			for (int i = 0; i < K; i++) {
 				printf("Estimate %d/%d\n", i + 1, K);
+				//auto Start = std::clock();
 #pragma omp parallel for
 				for (int NIndex = 0; NIndex < N; NIndex++) {
 					double Up = MixtureCoefficients.at(i * size_t(N) + NIndex) * GaussianDistributions.at(i).Evaluate(InImage.at<GaussianType::PixelType>(NIndex));
@@ -703,6 +765,8 @@ namespace GMM {
 					}
 					PostProbability[i].at<double>(NIndex) = Up / Sum;
 				}
+				//auto End = std::clock();
+				//printf("use %d ms\n", (End - Start));
 			}
 		}
 
@@ -710,6 +774,8 @@ namespace GMM {
 		static void MStep(const cv::Mat& InImage,
 			const int K, const int N,
 			const std::vector<cv::Mat>& PostProbability,
+			const double Beta,
+			const int WindSize,
 			EMContext& Context,
 			std::vector<double>& MixtureCoefficients,
 			std::vector<GaussianType>& GaussianDistributions,
@@ -726,7 +792,7 @@ namespace GMM {
 						for (int k = 0; k < K; k++) {
 							int NIndex = i * InImage.cols + j;
 							GCache[k * size_t(N) + NIndex] = G(k, NIndex, InImage.rows, InImage.cols,
-								N, PostProbability, MixtureCoefficients);
+								N, PostProbability, MixtureCoefficients, Beta, WindSize);
 						}
 					}
 				}
@@ -735,6 +801,8 @@ namespace GMM {
 			// 更新每个高斯分布
 			{
 				printf("Update Gaussian Parameters....\n");
+				//auto Start = std::clock();
+#pragma omp parallel for
 				for (int i = 0; i < K; i++) {
 					double SumProbility = 0.0;
 					GaussianType::PixelType SumExpectation = Math::Empty<GaussianType::PixelType>();
@@ -753,12 +821,14 @@ namespace GMM {
 
 					// 方差
 					auto SumVariance = GaussianType::EmptyVariance();
-					for (int row = 0; row < PostProbability[i].rows; row++) {
-						for (int col = 0; col < PostProbability[i].cols; col++) {
-							auto Diff = InImage.at<GaussianType::PixelType>(row, col) - NewGaussianDistrib.Expectation;
-							SumVariance += PostProbability[i].at<double>(row, col) * Math::VarianceSquare(Diff);
-						}
+					auto Diff = Math::Empty<GaussianType::PixelType>();
+					auto& PP = PostProbability[i];
+					for (int i = 0; i < N; i++) {
+						Diff = InImage.at<GaussianType::PixelType>(i) - NewGaussianDistrib.Expectation;
+						//SumVariance += PP.at<double>(i) *  Math::VarianceSquare(Diff);
+						Math::SumVariance(SumVariance, Diff, PP.at<double>(i));
 					}
+
 					NewGaussianDistrib.Variance = SumVariance / SumProbility;
 
 					Context.DExp[i] = Math::Abs(OldGaussianDistrib.Expectation - NewGaussianDistrib.Expectation);
@@ -767,6 +837,8 @@ namespace GMM {
 
 					OldGaussianDistrib = NewGaussianDistrib;
 				}
+				//auto End = std::clock();
+				//printf("use %d ms\n", End - Start);
 			}
 
 			// 更新系数
@@ -779,12 +851,14 @@ namespace GMM {
 						double SumZG = 0.0;
 						for (int k = 0; k < K; k++) {
 							SumZG += (PostProbability[k].at<double>(i, j)
-								+ G(k, NIndex, InImage.rows, InImage.cols, N, PostProbability, MixtureCoefficients));
+								+ G(k, NIndex, InImage.rows, InImage.cols, N, PostProbability, MixtureCoefficients,
+									Beta, WindSize));
 						}
 
 						for (int k = 0; k < K; k++) {
 							auto ZG = (PostProbability[k].at<double>(i, j)
-								+ G(k, NIndex, InImage.rows, InImage.cols, N, PostProbability, MixtureCoefficients));
+								+ G(k, NIndex, InImage.rows, InImage.cols, N, PostProbability, MixtureCoefficients,
+									Beta, WindSize));
 							MixtureCoefficients.at(k * size_t(N) + NIndex) = ZG / SumZG;
 						}
 					}
@@ -829,10 +903,10 @@ namespace GMM {
 	
 		static double G(const int KIndex, const int NIndex, const int Rows, const int Cols, const int N,
 			const std::vector<cv::Mat>& PostProbability,
-			const std::vector<double>& MixtureCoefficients
+			const std::vector<double>& MixtureCoefficients,
+			const double Beta,
+			const int WindSize
 		) {
-			const double Beta = 12;
-			const int WindSize = 5;
 			const int Ni = WindSize * WindSize;
 			double Sum = 0.0;
 			int Row = NIndex / Cols;
@@ -843,7 +917,7 @@ namespace GMM {
 					double Z = 0, M = 0;
 					if (0 <= R && R < Rows && 0 <= C && C < Cols) {
 						Z = PostProbability[KIndex].at<double>(R, C);
-						M = MixtureCoefficients.at(KIndex * size_t(N) + R * Cols + C);
+						M = MixtureCoefficients.at(KIndex * size_t(N) + R * size_t(Cols) + C);
 					}
 					Sum += (Z + M);
 				}
@@ -859,9 +933,11 @@ namespace GMM {
 		std::vector<GaussianDistribution1D> GaussianDistributions;
 		std::vector<double> MixtureCoefficients;
 		double LogLikehoodCache = 1;
-		ModifiedGaussianMixtureModel1D(const int K, const int N) :
+		double Beta = 12;
+		int WindSize = 5;
+		ModifiedGaussianMixtureModel1D(const int K, const int N, const double Beta = 12, const int WindSize = 5) :
 			MixtureModel(K),
-			K(K), N(N),
+			K(K), N(N), Beta(Beta), WindSize(WindSize),
 			MixtureCoefficients(std::vector<double>(K * size_t(N))),
 			GaussianDistributions(std::vector<GaussianDistribution1D>(K)),
 			GCache(std::vector<double>(K * size_t(N))) {
@@ -883,7 +959,7 @@ namespace GMM {
 
 		virtual void MStep(const cv::Mat& InImage) override {
 			ModifiedGaussianMixtureModelEMStepper::MStep<GaussianDistribution1D>(
-				InImage, K, N, PostProbability, Context, MixtureCoefficients,
+				InImage, K, N, PostProbability, Beta, WindSize, Context, MixtureCoefficients,
 				GaussianDistributions, GCache, LogLikehoodCache
 			);
 		}
@@ -920,10 +996,11 @@ namespace GMM {
 		std::vector<GaussianDistribution3D> GaussianDistributions;
 		std::vector<double>GCache;
 		double LogLikehoodCache = 1;
-
-		ModifiedGaussianMixtureModel3D(const int K, const int N) :
+		double Beta = 12;
+		int WindSize = 5;
+		ModifiedGaussianMixtureModel3D(const int K, const int N, const double Beta = 12, const int WindSize = 5) :
 			MixtureModel(K),
-			K(K), N(N),
+			K(K), N(N), Beta(Beta), WindSize(WindSize),
 			GaussianDistributions(std::vector<GaussianDistribution3D>(K)),
 			MixtureCoefficients(std::vector<double>(K* size_t(N))),
 			GCache(std::vector<double>(K* size_t(N))) {
@@ -944,10 +1021,11 @@ namespace GMM {
 
 		virtual void MStep(const cv::Mat& InImage) override {
 			ModifiedGaussianMixtureModelEMStepper::MStep<GaussianDistribution3D>(
-				InImage, K, N, PostProbability, Context, MixtureCoefficients,
+				InImage, K, N, PostProbability, Beta, WindSize, Context, MixtureCoefficients,
 				GaussianDistributions, GCache, LogLikehoodCache
 				);
 		}
+
 		virtual std::string TypeString() const override {
 			return "ModifiedGaussianMixtureModel 3D";
 		}
@@ -972,13 +1050,6 @@ namespace GMM {
 
 		virtual void Load(const char* Filename) override {
 			ModelFileManager::Load<GaussianDistribution3D>(Filename, this->MixtureCoefficients, this->GaussianDistributions);
-		}
-
-		void UpdateCache() {
-			// update cache
-			for (int i = 0; i < K; i++) {
-				GaussianDistributions.at(i).UpdateCache();
-			}
 		}
 	};
 
@@ -1060,16 +1131,23 @@ namespace GMM {
 				Model = new GaussianMixtureModel1D(Arg.mComponentCount);
 				break;
 			case SegArg::ESegType::MGMMColor:
-				Model = new ModifiedGaussianMixtureModel3D(Arg.mComponentCount, InImage.rows * InImage.cols);
+				Model = new ModifiedGaussianMixtureModel3D(Arg.mComponentCount, InImage.rows * InImage.cols, Arg.mBeta, Arg.mWindSize);
 				break;
 			case SegArg::ESegType::MGMMGray:
-				Model = new ModifiedGaussianMixtureModel1D(Arg.mComponentCount, InImage.rows * InImage.cols);
+				Model = new ModifiedGaussianMixtureModel1D(Arg.mComponentCount, InImage.rows * InImage.cols, Arg.mBeta, Arg.mWindSize);
 				break;
 			default:
 				break;
 			}
 			
 			if (Model) {
+				Model->Condition
+					.MaxIterationCount(Arg.mMaxIterationCount)
+					.DCoeThreshold(Arg.mDCoeThreshold)
+					.DExpThreshold(Arg.mDExpThreshold)
+					.DVarThreshold(Arg.mDVarThreshold)
+					.DLogLikehoodThreshold(Arg.mDLogLikehoodThreshold);
+
 				EMAlgorithm::Train(*Model, InImage, Arg.mKMeansInitialized);
 				////////////////// Segmenation ////////////////
 				Model->EStep(InImage);
@@ -1144,36 +1222,38 @@ namespace GMM {
 			{"D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f02970.png", 4	},
 			{"D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f00300.png", 4	},
 			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\grid.PNG", 4						},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse2.PNG", 2						},
 			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\Lenna.jpg", 4						},
 			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\elephant.PNG", 2					},
 			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\leaf.jpg", 2						},
 			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\snow.PNG", 3						},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\cow.PNG", 4						},
 			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse1.PNG", 2						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse2.PNG", 2						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\cow.PNG", 4						},
 		};
 
 		auto Arg = SegArg()
-			.RandomSeed(true)
+			.RandomSeed(false)
+			.Beta(12)
+			.WindSize(5)
 			.InputModel(nullptr)
 			.DCoeThreshold(0.001)
 			.DExpThreshold(0.001)
 			.DVarThreshold(0.001)
 			.OutputModel(nullptr)
-			.MaxIterationCount(20)
+			.MaxIterationCount(1024)
 			.KMeansInitialized(true)
-			.DLogLikehoodThreshold(100)
+			.DLogLikehoodThreshold(1)
 			.ComponentCount(TestData.back().second);
 
 		TestSegmentation(
 			TestData.back().first,
 			Arg
-				.SegType(SegArg::ESegType::GMMColor)
 				.SegType(SegArg::ESegType::KMeansColor)
 				.SegType(SegArg::ESegType::KMeansGray)
 				.SegType(SegArg::ESegType::GMMGray)
-				.SegType(SegArg::ESegType::MGMMColor)
 				.SegType(SegArg::ESegType::MGMMGray)
+				.SegType(SegArg::ESegType::GMMColor)
+				.SegType(SegArg::ESegType::MGMMColor)
 		);
 
 		//TestSegmentation(
