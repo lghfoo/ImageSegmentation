@@ -168,6 +168,7 @@ namespace GMM {
 		const char* mOutputModel = nullptr;
 		double mBeta = 12.0;
 		int mWindSize = 5;
+		std::vector<std::vector<uchar>> mColorMap = {};
 
 		SegArg& MaxIterationCount(int Count) {
 			this->mMaxIterationCount = Count;
@@ -231,6 +232,11 @@ namespace GMM {
 
 		SegArg& WindSize(const int Input) {
 			mWindSize = Input;
+			return *this;
+		}
+
+		SegArg& ColorMap(const std::vector<std::vector<uchar>> C) {
+			mColorMap = C;
 			return *this;
 		}
 
@@ -1093,8 +1099,8 @@ namespace GMM {
 		}
 		int N = InImage.rows * InImage.cols;
 		double Step = 1.0 / (double(K) - 1);
-		OutImage.forEach<double>(
-			[&](double& Pixel, const int* Position) {
+		OutImage.forEach<cv::Vec3b>(
+			[&](cv::Vec3b& Pixel, const int* Position) {
 			double MinError = 0, MinIndex = 0;
 			for (int j = 0; j < K; j++) {
 				auto Error = Math::Square(InImage.at<PixelType>(Position) - Means[j]);
@@ -1103,7 +1109,8 @@ namespace GMM {
 					MinIndex = j;
 				}
 			}
-			Pixel = Step * MinIndex;
+			auto& ColorArr = Arg.mColorMap[MinIndex];
+			Pixel = { ColorArr[2], ColorArr[1], ColorArr[0] };// Step* MinIndex;
 		});
 	}
 
@@ -1152,8 +1159,8 @@ namespace GMM {
 				////////////////// Segmenation ////////////////
 				Model->EStep(InImage);
 				double Step = 1.0 / (double(Arg.mComponentCount) - 1);
-				OutImage.forEach<double>(
-					[&](double& Pixel, const int* Position) {
+				OutImage.forEach<cv::Vec3b>(
+					[&](cv::Vec3b& Pixel, const int* Position) {
 					double MaxProbility = 0.0;
 					int MaxI = 0;
 					auto& Probility = Model->PostProbability;
@@ -1163,7 +1170,8 @@ namespace GMM {
 							MaxProbility = Probility[i].at<double>(Position);
 						}
 					}
-					Pixel = Step * MaxI;
+					auto& ColorArr = Arg.mColorMap[MaxI];
+					Pixel = {ColorArr[2], ColorArr[1], ColorArr[0]};// Step* MaxI;
 				}
 				);
 				delete Model;
@@ -1197,7 +1205,7 @@ namespace GMM {
 			InputImage.convertTo(InputImage, CV_64FC3, 1.0 / 255.0);
 		}
 
-		SegmentedImg = cv::Mat(InputImage.rows, InputImage.cols, CV_64FC1);
+		SegmentedImg = cv::Mat(InputImage.rows, InputImage.cols, CV_8UC3);
 		Segmentation(InputImage, SegmentedImg, Arg);
 
 		if (!OK) {
@@ -1212,23 +1220,31 @@ namespace GMM {
 			Stream = std::stringstream();
 			Stream << "Segmented" << Count;
 			CV::DisplayImage(SegmentedImg, Stream.str().c_str());
+
+			auto InputName = std::string(InputImageName);
+			auto Pos = InputName.find_last_of('\\');
+			auto SimpleName = InputName.substr(Pos, InputName.size() - Pos);
+			Pos = SimpleName.find('.');
+			auto SavedName = SimpleName.replace(Pos, SimpleName.size(), "_segmented.png");
+			CV::SaveImage(SegmentedImg, SavedName);
+
 			Count++;
 		}
 	}
 
 	static void Main() {
-		std::vector<std::pair<const char*, int>>TestData{
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\blog\\002\\0.png", 4						},
-			{"D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f02970.png", 4	},
-			{"D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f00300.png", 4	},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\grid.PNG", 4						},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\Lenna.jpg", 4						},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\elephant.PNG", 2					},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\leaf.jpg", 2						},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\snow.PNG", 3						},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse1.PNG", 2						},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse2.PNG", 2						},
-			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\cow.PNG", 4						},
+		std::vector<std::tuple<const char*, int, std::vector<std::vector<uchar>>>>TestData{
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\blog\\002\\0.png", 4, {}						},
+			{"D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f02970.png", 4,{}	},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\grid.PNG", 4,{}						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\Lenna.jpg", 4,{}						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\leaf.jpg", 2, {}						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\snow.PNG", 3, {}						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\cow.PNG", 4, {}						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\elephant.PNG", 2, {}					},
+			{"D:\\Study\\毕业设计\\Dataset\\CamVid11\\CamVid\\images\\test\\Seq05VD_f00300.png", 4, {}	},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse2.PNG", 2, {}						},
+			{"C:\\Users\\35974\\Pictures\\Saved Pictures\\Study\\horse1.PNG", 2, {/*background*/{159, 181, 98}, /*horse*/{101, 84, 66}}						},
 		};
 
 		auto Arg = SegArg()
@@ -1240,13 +1256,14 @@ namespace GMM {
 			.DExpThreshold(0.001)
 			.DVarThreshold(0.001)
 			.OutputModel(nullptr)
-			.MaxIterationCount(1024)
+			.MaxIterationCount(20)
 			.KMeansInitialized(true)
 			.DLogLikehoodThreshold(1)
-			.ComponentCount(TestData.back().second);
+			.ComponentCount(std::get<1>(TestData.back()))
+			.ColorMap(std::get<2>(TestData.back()));
 
 		TestSegmentation(
-			TestData.back().first,
+			std::get<0>(TestData.back()),
 			Arg
 				.SegType(SegArg::ESegType::KMeansColor)
 				.SegType(SegArg::ESegType::KMeansGray)
