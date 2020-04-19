@@ -343,10 +343,10 @@ namespace GMM {
 	struct MixtureModel {
 		EMContext Context;
 		EMStopCondition Condition;
-		std::vector<cv::Mat> PostProbility;
+		std::vector<cv::Mat> PostProbability;
 		MixtureModel(int K) :
 			Context(EMContext(K)),
-			PostProbility(std::vector<cv::Mat>(K)) {}
+			PostProbability(std::vector<cv::Mat>(K)) {}
 		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize) = 0;
 		virtual void EStep(const cv::Mat& InImage) = 0;
 		virtual void MStep(const cv::Mat& InImage) = 0;
@@ -466,7 +466,7 @@ namespace GMM {
 			const cv::Mat& InImage, const int K,
 			std::vector<GaussianType>& GaussianDistributions,
 			std::vector<double>& MixtureCoefficients,
-			std::vector<cv::Mat>& PostProbility) {
+			std::vector<cv::Mat>& PostProbability) {
 			if (UseKMeansInitialize) {
 				std::vector<GaussianType::PixelType>Means;
 				KMeans<GaussianType::PixelType>(InImage, K, Means);
@@ -484,33 +484,33 @@ namespace GMM {
 
 			std::fill(MixtureCoefficients.begin(), MixtureCoefficients.end(), 1.0 / K);
 			
-			for (int i = 0; i < PostProbility.size(); i++) {
-				PostProbility[i] = cv::Mat(InImage.rows, InImage.cols, CV_64FC1);
+			for (int i = 0; i < PostProbability.size(); i++) {
+				PostProbability[i] = cv::Mat(InImage.rows, InImage.cols, CV_64FC1);
 			}
 		}
 	};
 
-	struct GaussianMixtureModelEMSteper {
+	struct GaussianMixtureModelEMStepper {
 		template<typename GaussianType>
 		static void EStep(const cv::Mat& InImage,
 			const int K, 
 			std::vector<GaussianType>& GaussianDistributions,
 			const std::vector<double>& MixtureCoefficients,
-			std::vector<cv::Mat>& PostProbility){
+			std::vector<cv::Mat>& PostProbability){
 			// update cache
 			for (int i = 0; i < K; i++) {
 				GaussianDistributions.at(i).UpdateCache();
 			}
 			for (int i = 0; i < K; i++) {
-				for (int row = 0; row < PostProbility[i].rows; row++) {
+				for (int row = 0; row < PostProbability[i].rows; row++) {
 #pragma omp parallel for
-					for (int col = 0; col < PostProbility[i].cols; col++) {
+					for (int col = 0; col < PostProbability[i].cols; col++) {
 						double Up = MixtureCoefficients.at(i) * GaussianDistributions.at(i).Evaluate(InImage.at<typename GaussianType::PixelType>(row, col));
 						double Sum = 0;
 						for (int j = 0; j < K; j++) {
 							Sum += MixtureCoefficients.at(j) * GaussianDistributions.at(j).Evaluate(InImage.at<typename GaussianType::PixelType>(row, col));
 						}
-						PostProbility[i].at<double>(row, col) = Up / Sum;
+						PostProbability[i].at<double>(row, col) = Up / Sum;
 					}
 				}
 			}
@@ -520,28 +520,28 @@ namespace GMM {
 		static void MStep(const cv::Mat& InImage,
 			const int K, std::vector<GaussianType>& GaussianDistributions,
 			std::vector<double>& MixtureCoefficients,
-			const std::vector<cv::Mat>& PostProbility,
+			const std::vector<cv::Mat>& PostProbability,
 			EMContext& Context) {
 			for (int i = 0; i < K; i++) {
 				double SumProbility = 0.0;
 				GaussianType::PixelType SumExpectation = 0.0;
-				for (int row = 0; row < PostProbility[i].rows; row++) {
-					for (int col = 0; col < PostProbility[i].cols; col++) {
-						SumProbility += PostProbility[i].at<double>(row, col);
-						SumExpectation += PostProbility[i].at<double>(row, col) * InImage.at<GaussianType::PixelType>(row, col);
+				for (int row = 0; row < PostProbability[i].rows; row++) {
+					for (int col = 0; col < PostProbability[i].cols; col++) {
+						SumProbility += PostProbability[i].at<double>(row, col);
+						SumExpectation += PostProbability[i].at<double>(row, col) * InImage.at<GaussianType::PixelType>(row, col);
 					}
 				}
-				auto N = PostProbility[i].rows * PostProbility[i].cols;
+				auto N = PostProbability[i].rows * PostProbability[i].cols;
 				auto& OldCoeff = MixtureCoefficients.at(i);
 				auto& OldGaussianDistrib = GaussianDistributions.at(i);
 				auto NewCoeff = SumProbility / N;
 				auto NewGaussianDistribExpectation = SumExpectation / SumProbility;
 
 				typename GaussianType::VarianceType SumVariance = GaussianType::EmptyVariance();
-				for (int row = 0; row < PostProbility[i].rows; row++) {
-					for (int col = 0; col < PostProbility[i].cols; col++) {
+				for (int row = 0; row < PostProbability[i].rows; row++) {
+					for (int col = 0; col < PostProbability[i].cols; col++) {
 						auto Diff = InImage.at<GaussianType::PixelType>(row, col) - NewGaussianDistribExpectation;
-						SumVariance += PostProbility[i].at<double>(row, col) * Math::VarianceSquare(Diff);
+						SumVariance += PostProbability[i].at<double>(row, col) * Math::VarianceSquare(Diff);
 					}
 				}
 				auto NewGaussianDistribVariance = SumVariance / SumProbility;
@@ -573,19 +573,19 @@ namespace GMM {
 		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true) override {
 			printf("Initialize....\n");
 			Initializer::Initialize<GaussianDistribution1D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbility);
+				MixtureCoefficients, PostProbability);
 		}
 
 		virtual void EStep(const cv::Mat& InImage) override {
-			GaussianMixtureModelEMSteper::EStep<GaussianDistribution1D>(
+			GaussianMixtureModelEMStepper::EStep<GaussianDistribution1D>(
 				InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbility);
+				MixtureCoefficients, PostProbability);
 		}
 
 		virtual void MStep(const cv::Mat& InImage) override {
-			GaussianMixtureModelEMSteper::MStep<GaussianDistribution1D>(
+			GaussianMixtureModelEMStepper::MStep<GaussianDistribution1D>(
 				InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbility, Context
+				MixtureCoefficients, PostProbability, Context
 			);
 		}
 
@@ -631,19 +631,19 @@ namespace GMM {
 		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true) override {
 			printf("Initialize....\n");
 			Initializer::Initialize<GaussianDistribution3D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbility);
+				MixtureCoefficients, PostProbability);
 		}
 
 		virtual void EStep(const cv::Mat& InImage) override {
-			GaussianMixtureModelEMSteper::EStep<GaussianDistribution3D>(
+			GaussianMixtureModelEMStepper::EStep<GaussianDistribution3D>(
 				InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbility);
+				MixtureCoefficients, PostProbability);
 		}
 
 		virtual void MStep(const cv::Mat& InImage) override {
-			GaussianMixtureModelEMSteper::MStep<GaussianDistribution3D>(
+			GaussianMixtureModelEMStepper::MStep<GaussianDistribution3D>(
 				InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbility, Context
+				MixtureCoefficients, PostProbability, Context
 				);
 		}
 
@@ -675,6 +675,183 @@ namespace GMM {
 		}
 	};
 
+	struct ModifiedGaussianMixtureModelEMStepper {
+		template<typename GaussianType>
+		static void UpdateCache(std::vector<GaussianType>& GaussianDistributions) {
+			for (auto& Gaussian : GaussianDistributions) {
+				Gaussian.UpdateCache();
+			}
+		}
+
+		template<typename GaussianType>
+		static void EStep(const cv::Mat& InImage,
+			const int K, const int N,
+			const std::vector<double>& MixtureCoefficients,
+			std::vector<GaussianType>& GaussianDistributions,
+			std::vector<cv::Mat>& PostProbability
+		) {
+			UpdateCache(GaussianDistributions);
+			printf(">>>>>>>>>>>>>>>> E-Step....\n");
+			for (int i = 0; i < K; i++) {
+				printf("Estimate %d/%d\n", i + 1, K);
+#pragma omp parallel for
+				for (int NIndex = 0; NIndex < N; NIndex++) {
+					double Up = MixtureCoefficients.at(i * size_t(N) + NIndex) * GaussianDistributions.at(i).Evaluate(InImage.at<GaussianType::PixelType>(NIndex));
+					double Sum = 1e-9;
+					for (int j = 0; j < K; j++) {
+						Sum += MixtureCoefficients.at(j * size_t(N) + NIndex) * GaussianDistributions.at(j).Evaluate(InImage.at<GaussianType::PixelType>(NIndex));
+					}
+					PostProbability[i].at<double>(NIndex) = Up / Sum;
+				}
+			}
+		}
+
+		template<typename GaussianType>
+		static void MStep(const cv::Mat& InImage,
+			const int K, const int N,
+			const std::vector<cv::Mat>& PostProbability,
+			EMContext& Context,
+			std::vector<double>& MixtureCoefficients,
+			std::vector<GaussianType>& GaussianDistributions,
+			std::vector<double>& GCache,
+			double& LogLikehoodCache
+		) {
+			printf(">>>>>>>>>>>>>>>> M-Step....\n");
+			// 计算上一次迭代的Gij
+			{
+				printf("Compute GCache....\n");
+#pragma omp parallel for
+				for (int i = 0; i < InImage.rows; i++) {
+					for (int j = 0; j < InImage.cols; j++) {
+						for (int k = 0; k < K; k++) {
+							int NIndex = i * InImage.cols + j;
+							GCache[k * size_t(N) + NIndex] = G(k, NIndex, InImage.rows, InImage.cols,
+								N, PostProbability, MixtureCoefficients);
+						}
+					}
+				}
+			}
+
+			// 更新每个高斯分布
+			{
+				printf("Update Gaussian Parameters....\n");
+				for (int i = 0; i < K; i++) {
+					double SumProbility = 0.0;
+					GaussianType::PixelType SumExpectation = Math::Empty<GaussianType::PixelType>();
+					for (int row = 0; row < PostProbability[i].rows; row++) {
+						for (int col = 0; col < PostProbability[i].cols; col++) {
+							SumProbility += PostProbability[i].at<double>(row, col);
+							SumExpectation += PostProbability[i].at<double>(row, col) * InImage.at<GaussianType::PixelType>(row, col);
+						}
+					}
+
+					auto& OldGaussianDistrib = GaussianDistributions.at(i);
+					GaussianType NewGaussianDistrib;
+
+					// 期望
+					NewGaussianDistrib.Expectation = SumExpectation / SumProbility;
+
+					// 方差
+					auto SumVariance = GaussianType::EmptyVariance();
+					for (int row = 0; row < PostProbability[i].rows; row++) {
+						for (int col = 0; col < PostProbability[i].cols; col++) {
+							auto Diff = InImage.at<GaussianType::PixelType>(row, col) - NewGaussianDistrib.Expectation;
+							SumVariance += PostProbability[i].at<double>(row, col) * Math::VarianceSquare(Diff);
+						}
+					}
+					NewGaussianDistrib.Variance = SumVariance / SumProbility;
+
+					Context.DExp[i] = Math::Abs(OldGaussianDistrib.Expectation - NewGaussianDistrib.Expectation);
+					Context.DVar[i] = Math::Abs(OldGaussianDistrib.Variance - NewGaussianDistrib.Variance);
+					Context.DCoeff[i] = 0;
+
+					OldGaussianDistrib = NewGaussianDistrib;
+				}
+			}
+
+			// 更新系数
+			{
+				printf("Update Coefficient....\n");
+#pragma omp parallel for
+				for (int i = 0; i < InImage.rows; i++) {
+					for (int j = 0; j < InImage.cols; j++) {
+						int NIndex = i * InImage.cols + j;
+						double SumZG = 0.0;
+						for (int k = 0; k < K; k++) {
+							SumZG += (PostProbability[k].at<double>(i, j)
+								+ G(k, NIndex, InImage.rows, InImage.cols, N, PostProbability, MixtureCoefficients));
+						}
+
+						for (int k = 0; k < K; k++) {
+							auto ZG = (PostProbability[k].at<double>(i, j)
+								+ G(k, NIndex, InImage.rows, InImage.cols, N, PostProbability, MixtureCoefficients));
+							MixtureCoefficients.at(k * size_t(N) + NIndex) = ZG / SumZG;
+						}
+					}
+				}
+			}
+
+			// 计算似然函数
+			{
+				printf("Compute LogLikehood: ");
+				UpdateCache(GaussianDistributions);
+				// first term
+				double FirstTerm = 0;
+#pragma omp parallel for reduction (+:FirstTerm)
+				for (int i = 0; i < N; i++) {
+					double SumTemp = 1e-9;
+					for (int k = 0; k < K; k++) {
+						SumTemp += MixtureCoefficients.at(k * size_t(N) + i)
+							* GaussianDistributions[k].Evaluate(InImage.at<GaussianType::PixelType>(i));
+					}
+					FirstTerm += std::log(SumTemp);
+				}
+				// second term
+				double SecondTerm = 0;
+#pragma omp parallel for reduction (+:SecondTerm)
+				for (int i = 0; i < N; i++) {
+					double SumTemp = 1e-9;
+					for (int k = 0; k < K; k++) {
+						SumTemp += GCache[k * size_t(N) + i]
+							* std::log(MixtureCoefficients.at(k * size_t(N) + i));
+					}
+					SecondTerm += SumTemp;
+				}
+
+				auto LogLikehood = FirstTerm + SecondTerm;
+				if (LogLikehoodCache <= 0) {
+					Context.DLogLikehood = std::abs(LogLikehood - LogLikehoodCache);
+				}
+				LogLikehoodCache = LogLikehood;
+				printf("%f\n", LogLikehood);
+			}
+		}
+	
+		static double G(const int KIndex, const int NIndex, const int Rows, const int Cols, const int N,
+			const std::vector<cv::Mat>& PostProbability,
+			const std::vector<double>& MixtureCoefficients
+		) {
+			const double Beta = 12;
+			const int WindSize = 5;
+			const int Ni = WindSize * WindSize;
+			double Sum = 0.0;
+			int Row = NIndex / Cols;
+			int Col = NIndex % Cols;
+			for (int i = -WindSize / 2; i <= WindSize / 2; i++) {
+				for (int j = -WindSize / 2; j <= WindSize / 2; j++) {
+					int R = Row + i, C = Col + j;
+					double Z = 0, M = 0;
+					if (0 <= R && R < Rows && 0 <= C && C < Cols) {
+						Z = PostProbability[KIndex].at<double>(R, C);
+						M = MixtureCoefficients.at(KIndex * size_t(N) + R * Cols + C);
+					}
+					Sum += (Z + M);
+				}
+			}
+			return std::pow(E, (Beta / (2.0 * Ni)) * Sum);
+		}
+	};
+
 	struct ModifiedGaussianMixtureModel1D : MixtureModel
 	{
 		int K, N;
@@ -693,7 +870,7 @@ namespace GMM {
 		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true) override {
 			printf("Initialize....\n");
 			Initializer::Initialize<GaussianDistribution1D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbility);
+				MixtureCoefficients, PostProbability);
 		}
 
 
@@ -707,7 +884,7 @@ namespace GMM {
 					for (int j = 0; j < K; j++) {
 						Sum += MixtureCoefficients.at(j * size_t(N) + NIndex) * GaussianDistributions.at(j).Evaluate(InImage.at<double>(NIndex));
 					}
-					PostProbility[i].at<double>(NIndex) = Up / Sum;
+					PostProbability[i].at<double>(NIndex) = Up / Sum;
 				}
 			}
 		}
@@ -733,10 +910,10 @@ namespace GMM {
 				for (int i = 0; i < K; i++) {
 					double SumProbility = 0.0;
 					double SumExpectation = 0.0;
-					for (int row = 0; row < PostProbility[i].rows; row++) {
-						for (int col = 0; col < PostProbility[i].cols; col++) {
-							SumProbility += PostProbility[i].at<double>(row, col);
-							SumExpectation += PostProbility[i].at<double>(row, col) * InImage.at<double>(row, col);
+					for (int row = 0; row < PostProbability[i].rows; row++) {
+						for (int col = 0; col < PostProbability[i].cols; col++) {
+							SumProbility += PostProbability[i].at<double>(row, col);
+							SumExpectation += PostProbability[i].at<double>(row, col) * InImage.at<double>(row, col);
 						}
 					}
 
@@ -748,9 +925,9 @@ namespace GMM {
 
 					// 方差
 					double SumVariance = 0.0;
-					for (int row = 0; row < PostProbility[i].rows; row++) {
-						for (int col = 0; col < PostProbility[i].cols; col++) {
-							SumVariance += PostProbility[i].at<double>(row, col) * Math::Square(InImage.at<double>(row, col) - NewGaussianDistrib.Expectation);
+					for (int row = 0; row < PostProbability[i].rows; row++) {
+						for (int col = 0; col < PostProbability[i].cols; col++) {
+							SumVariance += PostProbability[i].at<double>(row, col) * Math::Square(InImage.at<double>(row, col) - NewGaussianDistrib.Expectation);
 						}
 					}
 					NewGaussianDistrib.Variance = SumVariance / SumProbility;
@@ -771,12 +948,12 @@ namespace GMM {
 						int NIndex = i * InImage.cols + j;
 						double SumZG = 0.0;
 						for (int k = 0; k < K; k++) {
-							SumZG += (PostProbility[k].at<double>(i, j)
+							SumZG += (PostProbability[k].at<double>(i, j)
 								+ G(k, NIndex, InImage.rows, InImage.cols));
 						}
 
 						for (int k = 0; k < K; k++) {
-							auto ZG = (PostProbility[k].at<double>(i, j)
+							auto ZG = (PostProbability[k].at<double>(i, j)
 								+ G(k, NIndex, InImage.rows, InImage.cols));
 							MixtureCoefficients.at(k * size_t(N) + NIndex) = ZG / SumZG;
 						}
@@ -845,7 +1022,7 @@ namespace GMM {
 					int R = Row + i, C = Col + j;
 					double Z = 0, M = 0;
 					if (0 <= R && R < Rows && 0 <= C && C < Cols) {
-						Z = PostProbility[KIndex].at<double>(R, C);
+						Z = PostProbability[KIndex].at<double>(R, C);
 						M = MixtureCoefficients.at(KIndex * size_t(N) + R * Cols + C);
 					}
 					Sum += (Z + M);
@@ -882,22 +1059,22 @@ namespace GMM {
 		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true) override {
 			printf("Initialize....\n");
 			Initializer::Initialize<GaussianDistribution3D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbility);
+				MixtureCoefficients, PostProbability);
 		}
 
 		virtual void EStep(const cv::Mat& InImage) override {
 			this->UpdateCache();
 			printf(">>>>>>>>>>>>>>>> E-Step....\n");
-			for (int i = 0; i < Count(); i++) {
-				printf("Estimate %d/%d\n", i + 1, Count());
+			for (int i = 0; i < K; i++) {
+				printf("Estimate %d/%d\n", i + 1, K);
 #pragma omp parallel for
 				for (int NIndex = 0; NIndex < N; NIndex++) {
-					double Up = GetMixtureCoefficient(i, NIndex) * GaussianDistributions[i].Evaluate(InImage.at<cv::Vec3d>(NIndex));
+					double Up = MixtureCoefficients.at(i * size_t(N) + NIndex) * GaussianDistributions.at(i).Evaluate(InImage.at<cv::Vec3d>(NIndex));
 					double Sum = 1e-9;
-					for (int j = 0; j < Count(); j++) {
-						Sum += GetMixtureCoefficient(j, NIndex) * GaussianDistributions[j].Evaluate(InImage.at<cv::Vec3d>(NIndex));
+					for (int j = 0; j < K; j++) {
+						Sum += MixtureCoefficients.at(j * size_t(N) + NIndex) * GaussianDistributions.at(j).Evaluate(InImage.at<cv::Vec3d>(NIndex));
 					}
-					PostProbility[i].at<double>(NIndex) = Up / Sum;
+					PostProbability[i].at<double>(NIndex) = Up / Sum;
 				}
 			}
 		}
@@ -910,7 +1087,7 @@ namespace GMM {
 #pragma omp parallel for
 				for (int i = 0; i < InImage.rows; i++) {
 					for (int j = 0; j < InImage.cols; j++) {
-						for (int k = 0; k < Count(); k++) {
+						for (int k = 0; k < K; k++) {
 							int NIndex = i * InImage.cols + j;
 							GCache[k * size_t(N) + NIndex] = G(k, NIndex, InImage.rows, InImage.cols);
 						}
@@ -921,17 +1098,17 @@ namespace GMM {
 			// 更新每个高斯分布
 			{
 				printf("Update Gaussian Parameters....\n");
-				for (int i = 0; i < Count(); i++) {
+				for (int i = 0; i < K; i++) {
 					double SumProbility = 0.0;
 					cv::Vec3d SumExpectation = 0.0;
-					for (int row = 0; row < PostProbility[i].rows; row++) {
-						for (int col = 0; col < PostProbility[i].cols; col++) {
-							SumProbility += PostProbility[i].at<double>(row, col);
-							SumExpectation += PostProbility[i].at<double>(row, col) * InImage.at<cv::Vec3d>(row, col);
+					for (int row = 0; row < PostProbability[i].rows; row++) {
+						for (int col = 0; col < PostProbability[i].cols; col++) {
+							SumProbility += PostProbability[i].at<double>(row, col);
+							SumExpectation += PostProbability[i].at<double>(row, col) * InImage.at<cv::Vec3d>(row, col);
 						}
 					}
 
-					auto& OldGaussianDistrib = GetGaussianDistribution(i);
+					auto& OldGaussianDistrib = GaussianDistributions.at(i);
 					GaussianDistribution3D NewGaussianDistrib;
 
 					// 期望
@@ -939,10 +1116,10 @@ namespace GMM {
 
 					// 方差
 					cv::Mat SumVariance = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 0, 0, 0, 0, 0);
-					for (int row = 0; row < PostProbility[i].rows; row++) {
-						for (int col = 0; col < PostProbility[i].cols; col++) {
+					for (int row = 0; row < PostProbability[i].rows; row++) {
+						for (int col = 0; col < PostProbability[i].cols; col++) {
 							cv::Vec3d Diff = InImage.at<cv::Vec3d>(row, col) - NewGaussianDistrib.Expectation;
-							SumVariance += PostProbility[i].at<double>(row, col) * cv::Mat(Diff) * cv::Mat(Diff).t();
+							SumVariance += PostProbability[i].at<double>(row, col) * cv::Mat(Diff) * cv::Mat(Diff).t();
 						}
 					}
 					NewGaussianDistrib.Variance = SumVariance / SumProbility;
@@ -964,14 +1141,14 @@ namespace GMM {
 						int NIndex = i * InImage.cols + j;
 						double SumZG = 0.0;
 						for (int k = 0; k < K; k++) {
-							SumZG += (PostProbility[k].at<double>(i, j)
+							SumZG += (PostProbability[k].at<double>(i, j)
 								+ G(k, NIndex, InImage.rows, InImage.cols));
 						}
 
 						for (int k = 0; k < K; k++) {
-							auto ZG = (PostProbility[k].at<double>(i, j)
+							auto ZG = (PostProbability[k].at<double>(i, j)
 								+ G(k, NIndex, InImage.rows, InImage.cols));
-							GetMixtureCoefficient(k, NIndex) = ZG / SumZG;
+							MixtureCoefficients.at(k * size_t(N) + NIndex) = ZG / SumZG;
 						}
 					}
 				}
@@ -987,7 +1164,7 @@ namespace GMM {
 				for (int i = 0; i < N; i++) {
 					double SumTemp = 1e-9;
 					for (int k = 0; k < K; k++) {
-						SumTemp += GetMixtureCoefficient(k, i)
+						SumTemp += MixtureCoefficients.at(k * size_t(N) + i)
 							* GaussianDistributions[k].Evaluate(InImage.at<cv::Vec3d>(i));
 					}
 					FirstTerm += std::log(SumTemp);
@@ -999,7 +1176,7 @@ namespace GMM {
 					double SumTemp = 1e-9;
 					for (int k = 0; k < K; k++) {
 						SumTemp += GCache[k * size_t(N) + i]
-							* std::log(GetMixtureCoefficient(k, i));
+							* std::log(MixtureCoefficients.at(k * size_t(N) + i));
 					}
 					SecondTerm += SumTemp;
 				}
@@ -1021,7 +1198,7 @@ namespace GMM {
 			std::stringstream Stream;
 			const char* Format = "#%d Exp: %s\tVar: %s\n";
 			char Buffer[256];
-			for (int i = 0; i < Count(); i++) {
+			for (int i = 0; i < K; i++) {
 				memset(Buffer, 0, sizeof(Buffer));
 				sprintf_s(Buffer, Format, i,
 					CV::ToString(GaussianDistributions[i].Expectation).c_str(),
@@ -1051,8 +1228,8 @@ namespace GMM {
 					int R = Row + i, C = Col + j;
 					double Z = 0, M = 0;
 					if (0 <= R && R < Rows && 0 <= C && C < Cols) {
-						Z = PostProbility[KIndex].at<double>(R, C);
-						M = GetMixtureCoefficient(KIndex, R * Cols + C);
+						Z = PostProbability[KIndex].at<double>(R, C);
+						M = MixtureCoefficients.at(KIndex * size_t(N) + R * Cols + C);
 					}
 					Sum += (Z + M);
 				}
@@ -1060,34 +1237,10 @@ namespace GMM {
 			return std::pow(E, (Beta / (2.0 * Ni)) * Sum);
 		}
 
-		int Count() const {
-			return GaussianDistributions.size();
-		}
-
-		double GetMixtureCoefficient(int KIndex, int NIndex) const {
-			assert(0 <= KIndex && KIndex < K && 0 <= NIndex && NIndex < N);
-			return MixtureCoefficients[KIndex * size_t(N) + NIndex];
-		}
-
-		double& GetMixtureCoefficient(int KIndex, int NIndex) {
-			assert(0 <= KIndex && KIndex < K && 0 <= NIndex && NIndex < N);
-			return MixtureCoefficients[KIndex * size_t(N) + NIndex];
-		}
-
-		GaussianDistribution3D& GetGaussianDistribution(int Index) {
-			assert(0 <= Index && Index < Count());
-			return GaussianDistributions[Index];
-		}
-
-		const GaussianDistribution3D& GetGaussianDistribution(int Index) const {
-			assert(0 <= Index && Index < Count());
-			return GaussianDistributions[Index];
-		}
-
 		void UpdateCache() {
 			// update cache
-			for (int i = 0; i < Count(); i++) {
-				GetGaussianDistribution(i).UpdateCache();
+			for (int i = 0; i < K; i++) {
+				GaussianDistributions.at(i).UpdateCache();
 			}
 		}
 	};
@@ -1188,7 +1341,7 @@ namespace GMM {
 					[&](double& Pixel, const int* Position) {
 					double MaxProbility = 0.0;
 					int MaxI = 0;
-					auto& Probility = Model->PostProbility;
+					auto& Probility = Model->PostProbability;
 					for (int i = 0; i < Probility.size(); i++) {
 						if (i == 0 || MaxProbility < Probility[i].at<double>(Position)) {
 							MaxI = i;
@@ -1280,10 +1433,10 @@ namespace GMM {
 			Arg
 				.SegType(SegArg::ESegType::GMMColor)
 				.SegType(SegArg::ESegType::MGMMColor)
-				.SegType(SegArg::ESegType::MGMMGray)
 				.SegType(SegArg::ESegType::KMeansColor)
-				.SegType(SegArg::ESegType::GMMGray)
 				.SegType(SegArg::ESegType::KMeansGray)
+				.SegType(SegArg::ESegType::GMMGray)
+				.SegType(SegArg::ESegType::MGMMGray)
 		);
 
 		//TestSegmentation(
