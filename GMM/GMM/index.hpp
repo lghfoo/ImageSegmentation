@@ -180,4 +180,20 @@ namespace Index {
 	//static double NPR(const cv::Mat& Result, const cv::Mat& GroundTruth) {
 	//	
 	//}
+
+	static void Measure(const char* Dir) {
+		std::string OutputPath = std::string(Dir) + "\\Output.png";
+		std::string TargetPath = std::string(Dir) + "\\Target.png";
+		auto OutputImage = cv::imread(OutputPath, cv::IMREAD_GRAYSCALE);
+		auto TargetImage = cv::imread(TargetPath, cv::IMREAD_GRAYSCALE);
+		double VIIndex = VI(OutputImage, TargetImage);
+		double GCEIndex = GCE(OutputImage, TargetImage);
+		double RandIndex = Rand(OutputImage, TargetImage);
+		printf("VI: %.3f, GCE: %.3f, Rand: %.3f\n");
+	}
+
+	static void Main() {
+		Measure("D:\\Study\\毕业设计\\周汇报\\第八周\\output_target\\310007");
+	}
 }
+

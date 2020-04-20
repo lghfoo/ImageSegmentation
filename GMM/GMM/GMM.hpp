@@ -130,8 +130,8 @@ namespace Math {
 
 	static double Square(const double Input) { return Input * Input; }
 
-	static double Square(const cv::Vec3d& Input) { 
-		return (Input[0] * Input[0] + Input[1] * Input[1] + Input[2] * Input[2]); 
+	static double Square(const cv::Vec3d& Input) {
+		return (Input[0] * Input[0] + Input[1] * Input[1] + Input[2] * Input[2]);
 	}
 
 	static double Length(const double Input) { return Input; }
@@ -154,7 +154,7 @@ namespace GMM {
 
 	struct SegArg {
 		enum class ESegType { GMMGray, GMMColor, KMeansGray, KMeansColor, MGMMGray, MGMMColor };
-
+		const char* mInputImageName = nullptr;
 		int mMaxIterationCount = 20;
 		double mDVarThreshold = 0.001;
 		double mDExpThreshold = 0.001;
@@ -169,6 +169,10 @@ namespace GMM {
 		double mBeta = 12.0;
 		int mWindSize = 5;
 		std::vector<std::vector<uchar>> mColorMap = {};
+		SegArg& InputImageName(const char* Name) {
+			this->mInputImageName = Name;
+			return *this;
+		}
 
 		SegArg& MaxIterationCount(int Count) {
 			this->mMaxIterationCount = Count;
@@ -247,6 +251,63 @@ namespace GMM {
 		bool IsEM() const {
 			return mSegType != ESegType::KMeansGray && mSegType != ESegType::KMeansColor;
 		}
+
+		std::string ToString() {
+			char ColorMapBuffer[1024] = {};
+			std::stringstream Stream;
+			Stream << "[";
+			for (int i = 0; i < mColorMap.size(); i++) {
+				auto C = mColorMap[i];
+				std::memset(ColorMapBuffer, 0, sizeof(ColorMapBuffer));
+				sprintf(ColorMapBuffer, "[%d, %d, %d]", C[0], C[1], C[2]);
+				Stream << ColorMapBuffer;
+				if (i != mColorMap.size() - 1)Stream << ", ";
+			}
+			Stream << "]";
+
+			char Buffer[4096] = {};
+			const char* Format =
+				"InputImageName: %s\n"
+				"MaxIterationCount: %d\n"
+				"DVarThreshold: %f\n"
+				"DExpThreshold: %f\n"
+				"DCoeThreshold: %f\n"
+				"DLogLikehoodThreshold: %f\n"
+				"ComponentCount: %d\n"
+				"KMeansInitialized: %s\n"
+				"RandomSeed: %s\n"
+				"SegType: %s\n"
+				"InputModel: %s\n"
+				"OutputModel: %s\n"
+				"Beta: %f\n"
+				"WindSize: %d\n"
+				"ColorMap: %s\n";
+
+			sprintf(Buffer, Format,
+				mInputImageName ? mInputImageName : "Null",
+				mMaxIterationCount,
+				mDVarThreshold,
+				mDExpThreshold,
+				mDCoeThreshold,
+				mDLogLikehoodThreshold,
+				mComponentCount,
+				mKMeansInitialized ? "True" : "False",
+				mRandomSeed ? "True" : "False",
+				mSegType == ESegType::GMMColor ? "GMMColor" :
+				mSegType == ESegType::GMMGray ? "GMMGray" :
+				mSegType == ESegType::KMeansColor ? "KMeansColor" :
+				mSegType == ESegType::KMeansGray ? "KMeansGray" :
+				mSegType == ESegType::MGMMColor ? "MGMMColor" :
+				mSegType == ESegType::MGMMGray ? "MGMMGray" :
+				"Unkown SegType",
+				mInputModel ? mInputModel : "Null",
+				mOutputModel ? mOutputModel : "Null",
+				mBeta,
+				mWindSize,
+				Stream.str().c_str()
+			);
+			return std::string(Buffer);
+		}
 	};
 
 	struct GaussianDistribution1D {
@@ -292,11 +353,11 @@ namespace GMM {
 		double FastEval(const cv::Vec3d& X) const {
 			//auto TmpMat = cv::Mat(X - Expectation).t();
 			//return (TmpMat * Cache2).dot(TmpMat);
-			
+
 			auto V0 = X[0] - Expectation[0],
 				V1 = X[1] - Expectation[1],
 				V2 = X[2] - Expectation[2];
-			
+
 			auto A00 = Cache2.at<double>(0, 0),
 				A01 = Cache2.at<double>(0, 1),
 				A02 = Cache2.at<double>(0, 2),
@@ -333,6 +394,9 @@ namespace GMM {
 		std::vector<double>DVar;
 		std::vector<double>DCoeff;
 		double DLogLikehood;
+		double LastLogLikehood;
+		bool HasLastLogLikehood = false;
+
 		EMContext(int K) :
 			DCoeff(std::vector<double>(K, DBL_MAX)),
 			DExp(std::vector<double>(K, DBL_MAX)),
@@ -548,7 +612,7 @@ namespace GMM {
 			}
 
 			std::fill(MixtureCoefficients.begin(), MixtureCoefficients.end(), 1.0 / K);
-			
+
 			for (int i = 0; i < PostProbability.size(); i++) {
 				PostProbability[i] = cv::Mat(InImage.rows, InImage.cols, CV_64FC1);
 			}
@@ -558,10 +622,10 @@ namespace GMM {
 	struct GaussianMixtureModelEMStepper {
 		template<typename GaussianType>
 		static void EStep(const cv::Mat& InImage,
-			const int K, 
+			const int K,
 			std::vector<GaussianType>& GaussianDistributions,
 			const std::vector<double>& MixtureCoefficients,
-			std::vector<cv::Mat>& PostProbability){
+			std::vector<cv::Mat>& PostProbability) {
 			// update cache
 			for (int i = 0; i < K; i++) {
 				GaussianDistributions.at(i).UpdateCache();
@@ -587,6 +651,7 @@ namespace GMM {
 			std::vector<double>& MixtureCoefficients,
 			const std::vector<cv::Mat>& PostProbability,
 			EMContext& Context) {
+			auto N = InImage.rows * InImage.cols;
 #pragma omp parallel for
 			for (int i = 0; i < K; i++) {
 				double SumProbility = 0.0;
@@ -597,7 +662,6 @@ namespace GMM {
 						SumExpectation += PostProbability[i].at<double>(row, col) * InImage.at<GaussianType::PixelType>(row, col);
 					}
 				}
-				auto N = PostProbability[i].rows * PostProbability[i].cols;
 				auto& OldCoeff = MixtureCoefficients.at(i);
 				auto& OldGaussianDistrib = GaussianDistributions.at(i);
 				auto NewCoeff = SumProbility / N;
@@ -616,12 +680,29 @@ namespace GMM {
 				Context.DCoeff[i] = std::abs(OldCoeff - NewCoeff);
 				Context.DExp[i] = Math::Abs(OldGaussianDistrib.Expectation - NewGaussianDistribExpectation);
 				Context.DVar[i] = Math::Abs(OldGaussianDistrib.Variance - NewGaussianDistribVariance);
-				Context.DLogLikehood = 0;
 
 				OldCoeff = NewCoeff;
 				OldGaussianDistrib.Expectation = NewGaussianDistribExpectation;
 				OldGaussianDistrib.Variance = NewGaussianDistribVariance;
 			}
+
+			// Compute LogLikehood
+			auto LogLikehood = 0.0;
+			for (int i = 0; i < N; i++) {
+				double Sum = 0.0;
+				for (int k = 0; k < K; k++) {
+					Sum += MixtureCoefficients.at(k) * GaussianDistributions.at(k).Evaluate(InImage.at<GaussianType::PixelType>(i));
+				}
+				LogLikehood += std::log(Sum);
+			}
+
+			if (Context.HasLastLogLikehood) {
+				Context.DLogLikehood = std::abs(LogLikehood - Context.LastLogLikehood);
+			}
+			else {
+				Context.HasLastLogLikehood = true;
+			}
+			Context.LastLogLikehood = LogLikehood;
 		}
 	};
 
@@ -653,7 +734,7 @@ namespace GMM {
 			GaussianMixtureModelEMStepper::MStep<GaussianDistribution1D>(
 				InImage, K, GaussianDistributions,
 				MixtureCoefficients, PostProbability, Context
-			);
+				);
 		}
 
 		virtual std::string TypeString() const override {
@@ -691,7 +772,7 @@ namespace GMM {
 			MixtureModel(K),
 			K(K),
 			GaussianDistributions(std::vector<GaussianDistribution3D>(K)),
-			MixtureCoefficients(std::vector<double>(K)){
+			MixtureCoefficients(std::vector<double>(K)) {
 		}
 
 
@@ -785,8 +866,7 @@ namespace GMM {
 			EMContext& Context,
 			std::vector<double>& MixtureCoefficients,
 			std::vector<GaussianType>& GaussianDistributions,
-			std::vector<double>& GCache,
-			double& LogLikehoodCache
+			std::vector<double>& GCache
 		) {
 			printf(">>>>>>>>>>>>>>>> M-Step....\n");
 			// 计算上一次迭代的Gij
@@ -899,14 +979,16 @@ namespace GMM {
 				}
 
 				auto LogLikehood = FirstTerm + SecondTerm;
-				if (LogLikehoodCache <= 0) {
-					Context.DLogLikehood = std::abs(LogLikehood - LogLikehoodCache);
+				if (Context.HasLastLogLikehood) {
+					Context.DLogLikehood = std::abs(LogLikehood - Context.LastLogLikehood);
 				}
-				LogLikehoodCache = LogLikehood;
-				printf("%f\n", LogLikehood);
+				else {
+					Context.HasLastLogLikehood = true;
+				}
+				Context.LastLogLikehood = LogLikehood;
 			}
 		}
-	
+
 		static double G(const int KIndex, const int NIndex, const int Rows, const int Cols, const int N,
 			const std::vector<cv::Mat>& PostProbability,
 			const std::vector<double>& MixtureCoefficients,
@@ -938,15 +1020,14 @@ namespace GMM {
 		std::vector<double>GCache;
 		std::vector<GaussianDistribution1D> GaussianDistributions;
 		std::vector<double> MixtureCoefficients;
-		double LogLikehoodCache = 1;
 		double Beta = 12;
 		int WindSize = 5;
 		ModifiedGaussianMixtureModel1D(const int K, const int N, const double Beta = 12, const int WindSize = 5) :
 			MixtureModel(K),
 			K(K), N(N), Beta(Beta), WindSize(WindSize),
-			MixtureCoefficients(std::vector<double>(K * size_t(N))),
+			MixtureCoefficients(std::vector<double>(K* size_t(N))),
 			GaussianDistributions(std::vector<GaussianDistribution1D>(K)),
-			GCache(std::vector<double>(K * size_t(N))) {
+			GCache(std::vector<double>(K* size_t(N))) {
 		}
 
 		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true) override {
@@ -960,14 +1041,14 @@ namespace GMM {
 			ModifiedGaussianMixtureModelEMStepper::EStep<GaussianDistribution1D>(
 				InImage, K, N, MixtureCoefficients,
 				GaussianDistributions, PostProbability
-			);
+				);
 		}
 
 		virtual void MStep(const cv::Mat& InImage) override {
 			ModifiedGaussianMixtureModelEMStepper::MStep<GaussianDistribution1D>(
 				InImage, K, N, PostProbability, Beta, WindSize, Context, MixtureCoefficients,
-				GaussianDistributions, GCache, LogLikehoodCache
-			);
+				GaussianDistributions, GCache
+				);
 		}
 
 		virtual std::string TypeString() const override {
@@ -985,7 +1066,7 @@ namespace GMM {
 			}
 			return Stream.str();
 		}
-		
+
 		virtual void Save(const char* Filename) const override {
 			ModelFileManager::Save<GaussianDistribution1D>(Filename, this->MixtureCoefficients, this->GaussianDistributions);
 		}
@@ -1001,7 +1082,6 @@ namespace GMM {
 		std::vector<double> MixtureCoefficients;
 		std::vector<GaussianDistribution3D> GaussianDistributions;
 		std::vector<double>GCache;
-		double LogLikehoodCache = 1;
 		double Beta = 12;
 		int WindSize = 5;
 		ModifiedGaussianMixtureModel3D(const int K, const int N, const double Beta = 12, const int WindSize = 5) :
@@ -1028,7 +1108,7 @@ namespace GMM {
 		virtual void MStep(const cv::Mat& InImage) override {
 			ModifiedGaussianMixtureModelEMStepper::MStep<GaussianDistribution3D>(
 				InImage, K, N, PostProbability, Beta, WindSize, Context, MixtureCoefficients,
-				GaussianDistributions, GCache, LogLikehoodCache
+				GaussianDistributions, GCache
 				);
 		}
 
@@ -1146,7 +1226,7 @@ namespace GMM {
 			default:
 				break;
 			}
-			
+
 			if (Model) {
 				Model->Condition
 					.MaxIterationCount(Arg.mMaxIterationCount)
@@ -1171,7 +1251,7 @@ namespace GMM {
 						}
 					}
 					auto& ColorArr = Arg.mColorMap[MaxI];
-					Pixel = {ColorArr[2], ColorArr[1], ColorArr[0]};// Step* MaxI;
+					Pixel = { ColorArr[2], ColorArr[1], ColorArr[0] };// Step* MaxI;
 				}
 				);
 				delete Model;
@@ -1192,26 +1272,44 @@ namespace GMM {
 		}
 	}
 
-	static void TestSegmentation(const char* InputImageName, const SegArg& Arg) {
+	static bool Segmentation(cv::Mat& SegmentedImg, const SegArg& Arg) {
 		bool OK = true;
-		cv::Mat InputImage, SegmentedImg;
+		cv::Mat InputImage;
 
 		if (Arg.IsGray()) {
-			OK = CV::ReadImage(InputImageName, InputImage, cv::IMREAD_GRAYSCALE);
+			OK = CV::ReadImage(Arg.mInputImageName, InputImage, cv::IMREAD_GRAYSCALE);
 			InputImage.convertTo(InputImage, CV_64FC1, 1.0 / 255.0);
 		}
 		else {
-			OK = CV::ReadImage(InputImageName, InputImage, cv::IMREAD_COLOR);
+			OK = CV::ReadImage(Arg.mInputImageName, InputImage, cv::IMREAD_COLOR);
 			InputImage.convertTo(InputImage, CV_64FC3, 1.0 / 255.0);
 		}
 
 		SegmentedImg = cv::Mat(InputImage.rows, InputImage.cols, CV_8UC3);
 		Segmentation(InputImage, SegmentedImg, Arg);
 
+		return OK;
+	}
+
+	static void TestSegmentation(const SegArg& Arg) {
+		cv::Mat SegmentedImg;
+		auto OK = Segmentation(SegmentedImg, Arg);
+
 		if (!OK) {
 			printf("read image fail\n");
 		}
 		else {
+			cv::Mat InputImage;
+
+			if (Arg.IsGray()) {
+				OK = CV::ReadImage(Arg.mInputImageName, InputImage, cv::IMREAD_GRAYSCALE);
+				InputImage.convertTo(InputImage, CV_64FC1, 1.0 / 255.0);
+			}
+			else {
+				OK = CV::ReadImage(Arg.mInputImageName, InputImage, cv::IMREAD_COLOR);
+				InputImage.convertTo(InputImage, CV_64FC3, 1.0 / 255.0);
+			}
+
 			std::stringstream Stream;
 			static int Count = 0;
 			Stream << "Origin " << Count;
@@ -1221,12 +1319,12 @@ namespace GMM {
 			Stream << "Segmented" << Count;
 			CV::DisplayImage(SegmentedImg, Stream.str().c_str());
 
-			auto InputName = std::string(InputImageName);
-			auto Pos = InputName.find_last_of('\\');
-			auto SimpleName = InputName.substr(Pos, InputName.size() - Pos);
-			Pos = SimpleName.find('.');
-			auto SavedName = SimpleName.replace(Pos, SimpleName.size(), "_segmented.png");
-			CV::SaveImage(SegmentedImg, SavedName);
+			//auto InputName = std::string(InputImageName);
+			//auto Pos = InputName.find_last_of('\\');
+			//auto SimpleName = InputName.substr(Pos, InputName.size() - Pos);
+			//Pos = SimpleName.find('.');
+			//auto SavedName = SimpleName.replace(Pos, SimpleName.size(), "_segmented.png");
+			//CV::SaveImage(SegmentedImg, SavedName);
 
 			Count++;
 		}
@@ -1259,18 +1357,18 @@ namespace GMM {
 			.MaxIterationCount(20)
 			.KMeansInitialized(true)
 			.DLogLikehoodThreshold(1)
+			.ColorMap(std::get<2>(TestData.back()))
 			.ComponentCount(std::get<1>(TestData.back()))
-			.ColorMap(std::get<2>(TestData.back()));
+			.InputImageName(std::get<0>(TestData.back()));
 
 		TestSegmentation(
-			std::get<0>(TestData.back()),
 			Arg
-				.SegType(SegArg::ESegType::KMeansColor)
-				.SegType(SegArg::ESegType::KMeansGray)
-				.SegType(SegArg::ESegType::GMMGray)
-				.SegType(SegArg::ESegType::MGMMGray)
-				.SegType(SegArg::ESegType::GMMColor)
-				.SegType(SegArg::ESegType::MGMMColor)
+			.SegType(SegArg::ESegType::KMeansColor)
+			.SegType(SegArg::ESegType::KMeansGray)
+			.SegType(SegArg::ESegType::MGMMGray)
+			.SegType(SegArg::ESegType::GMMColor)
+			.SegType(SegArg::ESegType::MGMMColor)
+			.SegType(SegArg::ESegType::GMMGray)
 		);
 
 		//TestSegmentation(
@@ -1280,4 +1378,98 @@ namespace GMM {
 
 		CV::Wait();
 	}
+}
+
+// C Interface
+#define GMM_API __declspec(dllexport)
+extern "C" {
+	//////////////// PROTOTYPE ////////////////
+	GMM_API struct Color {
+		uchar R = 0, G = 0, B = 0;
+	};
+
+	GMM_API struct ColorMap {
+		int Count = 0;
+		Color* Colors = nullptr;
+	};
+
+	GMM_API struct SegArg
+	{
+		//enum class ESegType { GMMGray, GMMColor, KMeansGray, KMeansColor, MGMMGray, MGMMColor };
+		const char* InputImageName = nullptr;
+		int mMaxIterationCount = 20;
+		double mDVarThreshold = 0.001;
+		double mDExpThreshold = 0.001;
+		double mDCoeThreshold = 0.001;
+		double mDLogLikehoodThreshold = 100;
+		int mComponentCount = 4;
+		bool mKMeansInitialized = false;
+		bool mRandomSeed = false;
+		int mSegType = 0;
+		const char* mInputModel = nullptr;
+		const char* mOutputModel = nullptr;
+		double mBeta = 12.0;
+		int mWindSize = 5;
+		ColorMap* mColorMap;
+	};
+
+	GMM_API struct SegOutput {
+		int OutWidth;
+		int OutHeight;
+		uchar* OutPixels;
+	};
+
+	GMM_API void Segmentation(const SegArg* Arg, SegOutput* Output);
+	GMM_API void FreeOutput(SegOutput* Output);
+
+	//////////////// IMPLEMENTATION ////////////////
+	GMM_API void Segmentation(const SegArg* Arg, SegOutput* Output) {
+		std::vector<std::vector<uchar>>ColorMap{};
+		auto Map = Arg->mColorMap;
+		for (int i = 0; i < Map->Count; i++) {
+			ColorMap.push_back({ Map->Colors[i].R, Map->Colors[i].G, Map->Colors[i].B });
+		}
+		GMM::SegArg GMMArg = GMM::SegArg()
+			.InputImageName(Arg->InputImageName)
+			.Beta(Arg->mBeta)
+			.ColorMap(ColorMap)
+			.ComponentCount(Arg->mComponentCount)
+			.DCoeThreshold(Arg->mDCoeThreshold)
+			.DExpThreshold(Arg->mDExpThreshold)
+			.DLogLikehoodThreshold(Arg->mDLogLikehoodThreshold)
+			.DVarThreshold(Arg->mDVarThreshold)
+			.InputModel(Arg->mInputModel)
+			.KMeansInitialized(Arg->mKMeansInitialized)
+			.MaxIterationCount(Arg->mMaxIterationCount)
+			.OutputModel(Arg->mOutputModel)
+			.RandomSeed(Arg->mRandomSeed)
+			.SegType(GMM::SegArg::ESegType(Arg->mSegType))
+			.WindSize(Arg->mWindSize);
+
+		printf("Arg: \n%s\n", GMMArg.ToString().c_str());
+
+		cv::Mat SegmentedImg;
+		GMM::Segmentation(SegmentedImg, GMMArg);
+
+		Output->OutWidth = SegmentedImg.cols;
+		Output->OutHeight = SegmentedImg.rows;
+		Output->OutPixels = (uchar*)std::malloc(sizeof(uchar) * Output->OutWidth * Output->OutHeight * 3);
+		for (int i = 0; i < Output->OutHeight; i++) {
+			for (int j = 0; j < Output->OutWidth; j++) {
+				int Offset = (i * Output->OutWidth + j) * 3;
+				auto Pixel = SegmentedImg.at<cv::Vec3b>(i, j);
+				Output->OutPixels[Offset] = Pixel[0];
+				Output->OutPixels[Offset + 1] = Pixel[1];
+				Output->OutPixels[Offset + 2] = Pixel[2];
+			}
+		}
+	}
+
+	GMM_API void FreeOutput(SegOutput* Output) {
+		if (Output) {
+			free(Output->OutPixels);
+			free(Output);
+		}
+	}
+
 }
