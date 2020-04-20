@@ -2,9 +2,12 @@
 //
 
 #include "GMM.hpp"
+#include "index.hpp"
 int main()
 {
-	GMM::Main();
+	// 配置属性->常规->配置类型->应用程序
+	//GMM::Main();
+	Index::Main();
 }
 
 // 运行程序: Ctrl + F5 或调试 >“开始执行(不调试)”菜单
