@@ -134,7 +134,7 @@ def create_arg(test_data):
     arg.DExpThreshold = 0.001
     arg.DVarThreshold = 0.001
     arg.OutputModel = None
-    arg.MaxIterationCount = 2048
+    arg.MaxIterationCount = 65536
     arg.KMeansInitialized = test_data[4] # True or False is important for the final result
     arg.GMMInitialized = test_data[5] # True or False is important for the final result
     arg.DLogLikehoodThreshold = 0.001
