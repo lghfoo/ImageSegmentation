@@ -150,16 +150,6 @@ def create_output():
 def main():
     output_dir = r"D:\Study\毕业设计\周汇报\第八周\outputs_raw"
     test_datas = [
-        # ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\42049_s0.5_scaled.jpg", 3, [[185, 202, 192], [144, 163, 170], [115, 100, 79]], GMMSegArg.mgmm_color True, True),
-        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\86016_s0.5_scaled.jpg", 2, [[66, 66, 66], [163, 163, 163]], GMMSegArg.mgmm_gray, True, True),
-        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\80099_s0.5_scaled.jpg", 2, [[230, 230, 230], [25, 25, 25]], GMMSegArg.mgmm_gray, False, True),
-        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\374067_s0.5_scaled.jpg", 3, [[123, 123, 123], [36, 36, 36], [74, 74, 74]], GMMSegArg.mgmm_gray, True, True),
-        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\296059_s0.5_scaled.jpg", 2, [[128, 131, 124], [64, 56, 47]], GMMSegArg.mgmm_color, False, True),
-        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\113044_s0.5_scaled.jpg", 2, [[176, 204, 117], [173, 118, 98]], GMMSegArg.mgmm_color, True, True),
-        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\113016_s0.5_scaled.jpg", 2, [[159, 181, 98], [101, 84, 66]], GMMSegArg.mgmm_color, True, True),
-        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\38092_s0.5_scaled.jpg", 4, [[218, 234, 205], [166, 157, 100], [82, 76, 54], [96, 115, 119]], GMMSegArg.mgmm_color, True, True),
-        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\310007_s0.5_scaled.jpg", 3, [[185, 202, 192], [144, 163, 170], [115, 100, 79]], GMMSegArg.mgmm_color, True, True),
-
         ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\310007_s0.5_scaled.jpg", 3, [[185, 202, 192], [144, 163, 170], [115, 100, 79]], GMMSegArg.gmm_color, True, False),
         ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\38092_s0.5_scaled.jpg", 4, [[218, 234, 205], [166, 157, 100], [82, 76, 54], [96, 115, 119]], GMMSegArg.gmm_color, True, False),
         ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\113016_s0.5_scaled.jpg", 2, [[159, 181, 98], [101, 84, 66]], GMMSegArg.gmm_color, True, False),
@@ -168,12 +158,28 @@ def main():
         ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\374067_s0.5_scaled.jpg", 3, [[123, 123, 123], [36, 36, 36], [74, 74, 74]], GMMSegArg.gmm_gray, True, False),
         ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\80099_s0.5_scaled.jpg", 2, [[230, 230, 230], [25, 25, 25]], GMMSegArg.gmm_gray, False, False),
         ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\86016_s0.5_scaled.jpg", 2, [[66, 66, 66], [163, 163, 163]], GMMSegArg.gmm_gray, True, False),
+
+        # ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\42049_s0.5_scaled.jpg", 3, [[185, 202, 192], [144, 163, 170], [115, 100, 79]], GMMSegArg.mgmm_color True, True),
+        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\86016_s0.5_scaled.jpg", 2, [[66, 66, 66], [163, 163, 163]], GMMSegArg.mgmm_gray, True, True),
+        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\80099_s0.5_scaled.jpg", 2, [[230, 230, 230], [25, 25, 25]], GMMSegArg.mgmm_gray, False, True),
+        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\374067_s0.5_scaled.jpg", 3, [[123, 123, 123], [36, 36, 36], [74, 74, 74]], GMMSegArg.mgmm_gray, True, True),
+        ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\374067.jpg", 3, [[123, 123, 123], [36, 36, 36], [74, 74, 74]], GMMSegArg.mgmm_gray, True, True, " - origin_size"),
+        # ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\296059_s0.5_scaled.jpg", 2, [[128, 131, 124], [64, 56, 47]], GMMSegArg.mgmm_color, False, True),
+        # ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\113044_s0.5_scaled.jpg", 2, [[176, 204, 117], [173, 118, 98]], GMMSegArg.mgmm_color, True, True),
+        # ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\113016_s0.5_scaled.jpg", 2, [[159, 181, 98], [101, 84, 66]], GMMSegArg.mgmm_color, True, True),
+        # ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\113016.jpg", 2, [[159, 181, 98], [101, 84, 66]], GMMSegArg.mgmm_color, True, True, " - origin_size"),
+        # ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\38092_s0.5_scaled.jpg", 4, [[218, 234, 205], [166, 157, 100], [82, 76, 54], [96, 115, 119]], GMMSegArg.mgmm_color, True, True),
+        # ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\38092.jpg", 4, [[218, 234, 205], [166, 157, 100], [82, 76, 54], [96, 115, 119]], GMMSegArg.mgmm_color, True, True, " - origin_size"),
+        # ("D:\\Study\\毕业设计\\周汇报\\第八周\\images\\310007_s0.5_scaled.jpg", 3, [[185, 202, 192], [144, 163, 170], [115, 100, 79]], GMMSegArg.mgmm_color, True, True),
     ]
     test_data = test_datas[-1]
     arg = create_arg(test_data)
 
     basename_ext = os.path.basename(arg.InputImageName).decode()
-    basename = '{}_{}_{}{}'.format(os.path.splitext(basename_ext)[0].split('_')[0], GMMSegArg.types[arg.SegType], 'K' if arg.KMeansInitialized else 'NK', '_G' if arg.GMMInitialized else '')
+    basename = '{}_{}_{}{}{}'.format(os.path.splitext(basename_ext)[0].split('_')[0], GMMSegArg.types[arg.SegType], 
+                                    'K' if arg.KMeansInitialized else 'NK', 
+                                    '_G' if arg.GMMInitialized else '',
+                                    "" if len(test_data) < 7 else test_data[6])
     output_dir = os.path.join(output_dir, basename)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)

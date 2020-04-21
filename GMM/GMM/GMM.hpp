@@ -491,13 +491,39 @@ namespace GMM {
 		MixtureModel(int K) :
 			Context(EMContext(K)),
 			PostProbability(std::vector<cv::Mat>(K)) {}
-		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize) = 0;
+		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize, bool UseGMMInitialize = false) = 0;
 		virtual void EStep(const cv::Mat& InImage) = 0;
 		virtual void MStep(const cv::Mat& InImage) = 0;
 		virtual std::string TypeString() const = 0;
 		virtual std::string ToString() const = 0;
 		virtual void Save(const char* Filename) const = 0;
 		virtual void Load(const char* Filename) = 0;
+	};
+
+	struct EMAlgorithm {
+		static void Train(MixtureModel& Model, const cv::Mat& InImage, bool UseKMeansInitialize = true, bool UseGMMInitialize = false) {
+			Model.Initialize(InImage, UseKMeansInitialize, UseGMMInitialize);
+			auto& Context = Model.Context;
+			auto& Condition = Model.Condition;
+			printf("**************** Train %s ****************\n", Model.TypeString().c_str());
+			printf("Model: \n%s", Model.ToString().c_str());
+			printf("Context: \n%s\n", Context.ToString().c_str());
+			// 迭代求解
+			while (!Condition.IsSatisfied(Context)) {
+				printf("======== Iter #%d ========\n", Context.IterationCount + 1);
+				// E-Step
+				Model.EStep(InImage);
+				// M-Step
+				Model.MStep(InImage);
+				// Update Context
+				Context.IterationCount++;
+				printf("Model: \n%s", Model.ToString().c_str());
+				printf("Context: \n%s\n", Context.ToString().c_str());
+			}
+			printf("-------- ModifiedGMMSegmentation End --------\n");
+			printf("Model: \n%s", Model.ToString().c_str());
+			printf("Context: \n%s\n", Context.ToString().c_str());
+		}
 	};
 
 	template<typename PixelType>
@@ -515,7 +541,7 @@ namespace GMM {
 	};
 
 	template<typename PixelType>
-	static void KMeans(const cv::Mat& InImage, const int K, std::vector<PixelType>& OutMeans) {
+	static void KMeansInitialize(const cv::Mat& InImage, const int K, std::vector<PixelType>& OutMeans) {
 		printf("-------- K-Means --------\n");
 		OutMeans.resize(K);
 		// 随机初始化
@@ -565,12 +591,12 @@ namespace GMM {
 		} while (HasMeansUpdated);
 	}
 
-	static void KMeansGray(const cv::Mat& InImage, const int K, std::vector<double>& OutMeans) {
-		KMeans<double>(InImage, K, OutMeans);
+	static void KMeansGrayInitialize(const cv::Mat& InImage, const int K, std::vector<double>& OutMeans) {
+		KMeansInitialize<double>(InImage, K, OutMeans);
 	}
 
-	static void KMeansColor(const cv::Mat& InImage, const int K, std::vector<cv::Vec3d>& OutMeans) {
-		KMeans<cv::Vec3d>(InImage, K, OutMeans);
+	static void KMeansColorInitialize(const cv::Mat& InImage, const int K, std::vector<cv::Vec3d>& OutMeans) {
+		KMeansInitialize<cv::Vec3d>(InImage, K, OutMeans);
 	}
 
 	struct ModelFileManager {
@@ -610,11 +636,12 @@ namespace GMM {
 			const cv::Mat& InImage, const int K,
 			std::vector<GaussianType>& GaussianDistributions,
 			std::vector<double>& MixtureCoefficients,
-			std::vector<cv::Mat>& PostProbability,
+			std::vector<cv::Mat>& PostProbability
 		) {
+			printf("Initialize....\n");
 			if (UseKMeansInitialize) {
 				std::vector<GaussianType::PixelType>Means;
-				KMeans<GaussianType::PixelType>(InImage, K, Means);
+				KMeansInitialize<GaussianType::PixelType>(InImage, K, Means);
 				for (int i = 0; i < K; i++) {
 					GaussianDistributions.at(i).Expectation = Means[i];
 				}
@@ -725,6 +752,7 @@ namespace GMM {
 
 	struct GaussianMixtureModel1D : MixtureModel
 	{
+		using DistributionType = GaussianDistribution1D;
 		int K;
 		std::vector<GaussianDistribution1D> GaussianDistributions;
 		std::vector<double> MixtureCoefficients;
@@ -735,8 +763,7 @@ namespace GMM {
 			MixtureCoefficients(std::vector<double>(K)) {
 		}
 
-		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true) override {
-			printf("Initialize....\n");
+		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true, bool UseGMMInitialize = false) override {
 			Initializer::Initialize<GaussianDistribution1D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
 				MixtureCoefficients, PostProbability);
 		}
@@ -782,6 +809,7 @@ namespace GMM {
 
 	struct GaussianMixtureModel3D : MixtureModel
 	{
+		using DistributionType = GaussianDistribution3D;
 		int K;
 		std::vector<GaussianDistribution3D> GaussianDistributions;
 		std::vector<double> MixtureCoefficients;
@@ -793,8 +821,7 @@ namespace GMM {
 		}
 
 
-		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true) override {
-			printf("Initialize....\n");
+		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true, bool UseGMMInitialize = false) override {
 			Initializer::Initialize<GaussianDistribution3D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
 				MixtureCoefficients, PostProbability);
 		}
@@ -1032,6 +1059,34 @@ namespace GMM {
 		}
 	};
 
+	struct ModifiedInitializer {
+		template<typename GaussianType>
+		static void Initialize(
+			const cv::Mat& InImage,
+			const int K, const int N,
+			const EMStopCondition& Condition,
+			const bool UseKMeansInitialize,
+			std::vector<typename GaussianType::DistributionType>& GaussianDistributions,
+			std::vector<double>& MixtureCoefficients,
+			std::vector<cv::Mat>& PostProbability
+		) {
+			printf("Use GMM Initialize....\n");
+			GaussianType* Model = new GaussianType(K);
+			Model->Condition = Condition;
+			EMAlgorithm::Train(*Model, InImage, UseKMeansInitialize, false);
+			GaussianDistributions = Model->GaussianDistributions;
+			for (int i = 0; i < K; i++) {
+				for (int j = 0; j < N; j++) {
+					MixtureCoefficients.at(i * size_t(N) + j) = Model->MixtureCoefficients.at(i);
+				}
+			}
+			for (int i = 0; i < PostProbability.size(); i++) {
+				PostProbability[i] = cv::Mat(InImage.rows, InImage.cols, CV_64FC1);
+			}
+			delete Model;
+		}
+	};
+
 	struct ModifiedGaussianMixtureModel1D : MixtureModel
 	{
 		int K, N;
@@ -1048,12 +1103,16 @@ namespace GMM {
 			GCache(std::vector<double>(K* size_t(N))) {
 		}
 
-		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true) override {
-			printf("Initialize....\n");
-			Initializer::Initialize<GaussianDistribution1D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbability);
+		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true, bool UseGMMInitialize = false) override {
+			if (UseGMMInitialize) {
+				ModifiedInitializer::Initialize<GaussianMixtureModel1D>(InImage, K, N, Condition, UseKMeansInitialize, GaussianDistributions, 
+					MixtureCoefficients, PostProbability);
+			}
+			else {
+				Initializer::Initialize<GaussianDistribution1D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
+					MixtureCoefficients, PostProbability);
+			}
 		}
-
 
 		virtual void EStep(const cv::Mat& InImage) override {
 			ModifiedGaussianMixtureModelEMStepper::EStep<GaussianDistribution1D>(
@@ -1110,10 +1169,15 @@ namespace GMM {
 			GCache(std::vector<double>(K* size_t(N))) {
 		}
 
-		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true) override {
-			printf("Initialize....\n");
-			Initializer::Initialize<GaussianDistribution3D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
-				MixtureCoefficients, PostProbability);
+		virtual void Initialize(const cv::Mat& InImage, bool UseKMeansInitialize = true, bool UseGMMInitialize = false) override {
+			if (UseGMMInitialize) {
+				ModifiedInitializer::Initialize<GaussianMixtureModel3D>(InImage, K, N, Condition, UseKMeansInitialize, GaussianDistributions,
+					MixtureCoefficients, PostProbability);
+			}
+			else {
+				Initializer::Initialize<GaussianDistribution3D>(UseKMeansInitialize, InImage, K, GaussianDistributions,
+					MixtureCoefficients, PostProbability);
+			}
 		}
 
 		virtual void EStep(const cv::Mat& InImage) override {
@@ -1157,37 +1221,11 @@ namespace GMM {
 		}
 	};
 
-	struct EMAlgorithm {
-		static void Train(MixtureModel& Model, const cv::Mat& InImage, bool UseKMeansInitialize = true) {
-			Model.Initialize(InImage, UseKMeansInitialize);
-			auto& Context = Model.Context;
-			auto& Condition = Model.Condition;
-			printf("**************** Train %s ****************\n", Model.TypeString().c_str());
-			printf("Model: \n%s", Model.ToString().c_str());
-			printf("Context: \n%s\n", Context.ToString().c_str());
-			// 迭代求解
-			while (!Condition.IsSatisfied(Context)) {
-				printf("======== Iter #%d ========\n", Context.IterationCount + 1);
-				// E-Step
-				Model.EStep(InImage);
-				// M-Step
-				Model.MStep(InImage);
-				// Update Context
-				Context.IterationCount++;
-				printf("Model: \n%s", Model.ToString().c_str());
-				printf("Context: \n%s\n", Context.ToString().c_str());
-			}
-			printf("-------- ModifiedGMMSegmentation End --------\n");
-			printf("Model: \n%s", Model.ToString().c_str());
-			printf("Context: \n%s\n", Context.ToString().c_str());
-		}
-	};
-
 	template<typename PixelType>
 	static void KMeansSegmentation(const cv::Mat& InImage, cv::Mat& OutImage, const SegArg& Arg) {
 		int K = Arg.mComponentCount;
 		std::vector<PixelType> Means;
-		KMeans<PixelType>(InImage, Arg.mComponentCount, Means);
+		KMeansInitialize<PixelType>(InImage, Arg.mComponentCount, Means);
 		printf("-------- Segmentation --------\n");
 		printf("Means: [");
 		for (int i = 0; i < Means.size(); i++) {
@@ -1256,7 +1294,7 @@ namespace GMM {
 					.DVarThreshold(Arg.mDVarThreshold)
 					.DLogLikehoodThreshold(Arg.mDLogLikehoodThreshold);
 
-				EMAlgorithm::Train(*Model, InImage, Arg.mKMeansInitialized);
+				EMAlgorithm::Train(*Model, InImage, Arg.mKMeansInitialized, Arg.mGMMInitialized);
 				////////////////// Segmenation ////////////////
 				Model->EStep(InImage);
 				double Step = 1.0 / (double(Arg.mComponentCount) - 1);
