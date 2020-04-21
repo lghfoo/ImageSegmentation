@@ -3,6 +3,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include<opencv2/opencv.hpp>
 #include<opencv2/core/types_c.h>
+#include<cstring>
 #define PI 3.141592653589793238463
 #define E  2.718281828459045235360
 namespace CV {
@@ -161,7 +162,8 @@ namespace GMM {
 		double mDCoeThreshold = 0.001;
 		double mDLogLikehoodThreshold = 100;
 		int mComponentCount = 4;
-		bool mKMeansInitialized = false;
+		bool mKMeansInitialized = false; // for GMM & MGMM initialized
+		bool mGMMInitialized = false; // for MGMM initialized
 		bool mRandomSeed = false;
 		ESegType mSegType = ESegType::GMMGray;
 		const char* mInputModel = nullptr;
@@ -206,6 +208,11 @@ namespace GMM {
 
 		SegArg& KMeansInitialized(bool UseKMeans) {
 			this->mKMeansInitialized = UseKMeans;
+			return *this;
+		}
+
+		SegArg& GMMInitialized(bool UseGMMIni) {
+			this->mGMMInitialized = UseGMMIni;
 			return *this;
 		}
 
@@ -310,6 +317,13 @@ namespace GMM {
 		}
 	};
 
+	struct SegOutput {
+		cv::Mat SegmentedImage;
+		int IterationCount = 0;
+		std::vector<double>LogLikehoodSummary = {};
+		std::string ModelString = "";
+	};
+
 	struct GaussianDistribution1D {
 		double Expectation = 0;
 		double Variance = 0.1;
@@ -394,8 +408,9 @@ namespace GMM {
 		std::vector<double>DVar;
 		std::vector<double>DCoeff;
 		double DLogLikehood;
-		double LastLogLikehood;
+		double LastLogLikehood = 0;
 		bool HasLastLogLikehood = false;
+		std::vector<double> LogLikehoodSummary = {};
 
 		EMContext(int K) :
 			DCoeff(std::vector<double>(K, DBL_MAX)),
@@ -595,7 +610,8 @@ namespace GMM {
 			const cv::Mat& InImage, const int K,
 			std::vector<GaussianType>& GaussianDistributions,
 			std::vector<double>& MixtureCoefficients,
-			std::vector<cv::Mat>& PostProbability) {
+			std::vector<cv::Mat>& PostProbability,
+		) {
 			if (UseKMeansInitialize) {
 				std::vector<GaussianType::PixelType>Means;
 				KMeans<GaussianType::PixelType>(InImage, K, Means);
@@ -703,6 +719,7 @@ namespace GMM {
 				Context.HasLastLogLikehood = true;
 			}
 			Context.LastLogLikehood = LogLikehood;
+			Context.LogLikehoodSummary.push_back(LogLikehood);
 		}
 	};
 
@@ -986,6 +1003,7 @@ namespace GMM {
 					Context.HasLastLogLikehood = true;
 				}
 				Context.LastLogLikehood = LogLikehood;
+				Context.LogLikehoodSummary.push_back(LogLikehood);
 			}
 		}
 
@@ -1202,7 +1220,10 @@ namespace GMM {
 		KMeansSegmentation<cv::Vec3d>(InImage, OutImage, Arg);
 	}
 
-	static void Segmentation(const cv::Mat& InImage, cv::Mat& OutImage, const SegArg& Arg) {
+	static void Segmentation(const cv::Mat& InImage, const SegArg& Arg, SegOutput& Output) {
+
+		Output.SegmentedImage = cv::Mat(InImage.rows, InImage.cols, CV_8UC3);
+
 		if (Arg.mRandomSeed) {
 			std::srand(time(NULL));
 		}
@@ -1239,7 +1260,7 @@ namespace GMM {
 				////////////////// Segmenation ////////////////
 				Model->EStep(InImage);
 				double Step = 1.0 / (double(Arg.mComponentCount) - 1);
-				OutImage.forEach<cv::Vec3b>(
+				Output.SegmentedImage.forEach<cv::Vec3b>(
 					[&](cv::Vec3b& Pixel, const int* Position) {
 					double MaxProbility = 0.0;
 					int MaxI = 0;
@@ -1254,6 +1275,9 @@ namespace GMM {
 					Pixel = { ColorArr[2], ColorArr[1], ColorArr[0] };// Step* MaxI;
 				}
 				);
+				Output.LogLikehoodSummary = Model->Context.LogLikehoodSummary;
+				Output.ModelString = Model->ToString();
+				Output.IterationCount = Model->Context.IterationCount;
 				delete Model;
 			}
 		}
@@ -1261,10 +1285,10 @@ namespace GMM {
 			switch (Arg.mSegType)
 			{
 			case SegArg::ESegType::KMeansColor:
-				KMeansSegmentationColor(InImage, OutImage, Arg);
+				KMeansSegmentationColor(InImage, Output.SegmentedImage, Arg);
 				break;
 			case SegArg::ESegType::KMeansGray:
-				KMeansSegmentationGray(InImage, OutImage, Arg);
+				KMeansSegmentationGray(InImage, Output.SegmentedImage, Arg);
 				break;
 			default:
 				break;
@@ -1272,7 +1296,7 @@ namespace GMM {
 		}
 	}
 
-	static bool Segmentation(cv::Mat& SegmentedImg, const SegArg& Arg) {
+	static bool Segmentation(const SegArg& Arg, SegOutput& Output) {
 		bool OK = true;
 		cv::Mat InputImage;
 
@@ -1285,15 +1309,19 @@ namespace GMM {
 			InputImage.convertTo(InputImage, CV_64FC3, 1.0 / 255.0);
 		}
 
-		SegmentedImg = cv::Mat(InputImage.rows, InputImage.cols, CV_8UC3);
-		Segmentation(InputImage, SegmentedImg, Arg);
+		if (!OK) {
+			printf("read image failed\n");
+			return false;
+		}
 
-		return OK;
+		Segmentation(InputImage, Arg, Output);
+
+		return true;
 	}
 
 	static void TestSegmentation(const SegArg& Arg) {
-		cv::Mat SegmentedImg;
-		auto OK = Segmentation(SegmentedImg, Arg);
+		SegOutput Output;
+		auto OK = Segmentation(Arg, Output);
 
 		if (!OK) {
 			printf("read image fail\n");
@@ -1317,7 +1345,7 @@ namespace GMM {
 			Stream.clear();
 			Stream = std::stringstream();
 			Stream << "Segmented" << Count;
-			CV::DisplayImage(SegmentedImg, Stream.str().c_str());
+			CV::DisplayImage(Output.SegmentedImage, Stream.str().c_str());
 
 			//auto InputName = std::string(InputImageName);
 			//auto Pos = InputName.find_last_of('\\');
@@ -1404,6 +1432,7 @@ extern "C" {
 		double mDLogLikehoodThreshold = 100;
 		int mComponentCount = 4;
 		bool mKMeansInitialized = false;
+		bool mGMMInitialized = false;
 		bool mRandomSeed = false;
 		int mSegType = 0;
 		const char* mInputModel = nullptr;
@@ -1417,6 +1446,9 @@ extern "C" {
 		int OutWidth;
 		int OutHeight;
 		uchar* OutPixels;
+		int IterationCount = 0;
+		double* LogLikehoodSummary = nullptr;
+		char* ModelString = nullptr;
 	};
 
 	GMM_API void Segmentation(const SegArg* Arg, SegOutput* Output);
@@ -1440,6 +1472,7 @@ extern "C" {
 			.DVarThreshold(Arg->mDVarThreshold)
 			.InputModel(Arg->mInputModel)
 			.KMeansInitialized(Arg->mKMeansInitialized)
+			.GMMInitialized(Arg->mGMMInitialized)
 			.MaxIterationCount(Arg->mMaxIterationCount)
 			.OutputModel(Arg->mOutputModel)
 			.RandomSeed(Arg->mRandomSeed)
@@ -1448,28 +1481,46 @@ extern "C" {
 
 		printf("Arg: \n%s\n", GMMArg.ToString().c_str());
 
-		cv::Mat SegmentedImg;
-		GMM::Segmentation(SegmentedImg, GMMArg);
+		GMM::SegOutput GMMOutput;
+		GMM::Segmentation(GMMArg, GMMOutput);
 
-		Output->OutWidth = SegmentedImg.cols;
-		Output->OutHeight = SegmentedImg.rows;
+		Output->OutWidth = GMMOutput.SegmentedImage.cols;
+		Output->OutHeight = GMMOutput.SegmentedImage.rows;
 		Output->OutPixels = (uchar*)std::malloc(sizeof(uchar) * Output->OutWidth * Output->OutHeight * 3);
 		for (int i = 0; i < Output->OutHeight; i++) {
 			for (int j = 0; j < Output->OutWidth; j++) {
 				int Offset = (i * Output->OutWidth + j) * 3;
-				auto Pixel = SegmentedImg.at<cv::Vec3b>(i, j);
+				auto Pixel = GMMOutput.SegmentedImage.at<cv::Vec3b>(i, j);
 				Output->OutPixels[Offset] = Pixel[0];
 				Output->OutPixels[Offset + 1] = Pixel[1];
 				Output->OutPixels[Offset + 2] = Pixel[2];
 			}
 		}
+
+
+		//Output->ModelString = strdup(GMMOutput.ModelString.c_str());
+		Output->ModelString = (char*)std::malloc(sizeof(char) * (GMMOutput.ModelString.size() + 1));
+		std::memset(Output->ModelString, 0, sizeof(char) * (GMMOutput.ModelString.size() + 1));
+		std::copy(GMMOutput.ModelString.begin(), GMMOutput.ModelString.end(), Output->ModelString);
+		Output->IterationCount = GMMOutput.IterationCount;
+		Output->LogLikehoodSummary = (double*)std::malloc(sizeof(double) * Output->IterationCount);
+		std::copy(GMMOutput.LogLikehoodSummary.begin(), GMMOutput.LogLikehoodSummary.end(), Output->LogLikehoodSummary);
 	}
 
 	GMM_API void FreeOutput(SegOutput* Output) {
 		if (Output) {
-			free(Output->OutPixels);
-			free(Output);
+			if (Output->OutPixels) {
+				//printf("free pixels\n");
+				free(Output->OutPixels);
+			}
+			if (Output->ModelString) {
+				//printf("free model string\n");
+				free(Output->ModelString);
+			}
+			if (Output->LogLikehoodSummary) {
+				//printf("free LogLikehoodSummary \n");
+				free(Output->LogLikehoodSummary);
+			}
 		}
 	}
-
 }
