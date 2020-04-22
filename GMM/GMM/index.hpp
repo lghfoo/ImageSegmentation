@@ -46,17 +46,20 @@ namespace Index {
 				for (int j = 0; j < N.size(); j++) {
 					if (N[i][j] == 0)continue;
 					assert(NR[i] > 0 && NG[j] > 0);
-					Sum += (double(N[i][j]) / Total)
-						* std::log(
-							(double(N[i][j]) / Total)
-							* (double(NR[i]) / Total)
-							* (double(NG[j]) / Total)
-						);					
+					//Sum += (double(N[i][j]) / Total)
+					//	* std::log(
+					//		(double(N[i][j]) / Total)
+					//		* (double(NR[i]) / Total)
+					//		* (double(NG[j]) / Total)
+					//	);
 					
 					//Sum += (double(N[i][j]) / Total)
 					//	* std::log(	(double(N[i][j]) / Total) )
 					//	* (double(NR[i]) / Total)
 					//	* (double(NG[j]) / Total);
+
+					Sum += (double(N[i][j]) / Total)
+						* std::log((double(N[i][j]) / Total) / ((double(NR[i]) / Total) * (double(NG[j]) / Total)));
 				}
 				Ret += Sum;
 			}
@@ -79,35 +82,23 @@ namespace Index {
 		}
 		);
 
-		//int S = 0;
+		//double Res = 0;
 		//for (int i = 0; i < K; i++) {
 		//	for (int j = 0; j < K; j++) {
-		//		printf("[%d][%d] = %d\n", i, j, N[i][j]);
-		//		S += N[i][j];
+		//		if (N[i][j] == 0)continue;
+		//		double RIJ = double(N[i][j]) / Total;
+		//		double Pi = double(NR[i]) / Total;
+		//		double Qj = double(NG[j]) / Total;
+		//		Res += RIJ * (std::log(RIJ / Pi) + std::log(RIJ / Qj));
 		//	}
 		//}
-		//printf("S: %d, T: %d\n", S, Total);
+		//Res = -Res;
+		//return Res;
 
-
-		// tmp
-		double Res = 0;
-		for (int i = 0; i < K; i++) {
-			for (int j = 0; j < K; j++) {
-				if (N[i][j] == 0)continue;
-				double RIJ = double(N[i][j]) / Total;
-				double Pi = double(NR[i]) / Total;
-				double Qj = double(NG[j]) / Total;
-				Res += RIJ * (std::log(RIJ / Pi) + std::log(RIJ / Qj));
-			}
-		}
-		Res = -Res;
-		return Res;
-		//printf("................. Res: %f ...............\n", Res);
-
-		//auto HR = H(NR, Total);
-		//auto HG = H(NG, Total); 
-		//auto I2 = 2 * I(N, NR, NG, Total);
-		//return HR + HG - I2;
+		auto HR = H(NR, Total);
+		auto HG = H(NG, Total); 
+		auto I2 = 2 * I(N, NR, NG, Total);
+		return HR + HG - I2;
 	}
 	
 	// global consistency error
@@ -215,21 +206,38 @@ namespace Index {
 	//}
 
 	static void Measure(const char* Dir) {
-		std::string OutputPath = std::string(Dir) + "\\Output_mask.png";
-		std::string TargetPath = std::string(Dir) + "\\Target_mask.png";
-		//std::string TargetPath = std::string(Dir) + "\\Output_mask.png";
-		auto OutputImage = cv::imread(OutputPath, cv::IMREAD_GRAYSCALE);
-		OutputImage.convertTo(OutputImage, CV_8UC1);
-		auto TargetImage = cv::imread(TargetPath, cv::IMREAD_GRAYSCALE);
-		TargetImage.convertTo(TargetImage, CV_8UC1);
-		double VIIndex = VI(OutputImage, TargetImage);
-		double GCEIndex = GCE(OutputImage, TargetImage);
-		double RandIndex = Rand(OutputImage, TargetImage);
-		printf("VI: %.3f, GCE: %.3f, Rand: %.3f\n", VIIndex/*0.f*/, GCEIndex, RandIndex/*0.f*/);
+		printf("======== Meausre %s ========\n", Dir);
+		std::string MGMMPath = std::string(Dir) + "\\mgmm_mask.png";
+		std::string GMMPath = std::string(Dir) + "\\gmm_mask.png";
+		std::string GroundTruthPath = std::string(Dir) + "\\ground_truth_mask.png";
+
+		auto MGMMImage = cv::imread(MGMMPath, cv::IMREAD_GRAYSCALE);
+		MGMMImage.convertTo(MGMMImage, CV_8UC1);
+
+		auto GroundTruthImage = cv::imread(GroundTruthPath, cv::IMREAD_GRAYSCALE);
+		GroundTruthImage.convertTo(GroundTruthImage, CV_8UC1);		
+		
+		auto GMMImage = cv::imread(GMMPath, cv::IMREAD_GRAYSCALE);
+		GMMImage.convertTo(GMMImage, CV_8UC1);
+
+		double VIIndex = VI(MGMMImage, GroundTruthImage);
+		double GCEIndex = GCE(MGMMImage, GroundTruthImage);
+		double RandIndex = Rand(MGMMImage, GroundTruthImage);
+		printf("MGMM\tVI: %.3f, GCE: %.3f, Rand: %.3f\n", VIIndex/*0.f*/, GCEIndex, RandIndex/*0.f*/);
+
+		VIIndex = VI(GMMImage, GroundTruthImage);
+		GCEIndex = GCE(GMMImage, GroundTruthImage);
+		RandIndex = Rand(GMMImage, GroundTruthImage);
+		printf("GMM\tVI: %.3f, GCE: %.3f, Rand: %.3f\n", VIIndex/*0.f*/, GCEIndex, RandIndex/*0.f*/);
 	}
 
 	static void Main() {
-		Measure("D:\\Study\\毕业设计\\周汇报\\第八周\\output_target\\310007");
+		Measure("D:\\Study\\毕业设计\\周汇报\\第八周\\output_target\\310007"); // 雪地
+		Measure("D:\\Study\\毕业设计\\周汇报\\第八周\\output_target\\296059"); // 象
+		Measure("D:\\Study\\毕业设计\\周汇报\\第八周\\output_target\\38092"); // 牛
+
+		Measure("D:\\Study\\毕业设计\\周汇报\\第八周\\output_target\\80099"); // 水牛 
+		Measure("D:\\Study\\毕业设计\\周汇报\\第八周\\output_target\\86016"); // 坛
 	}
 }
 
