@@ -52,9 +52,9 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
         b_channel[b_channel==category.id] = category.color[2]
 
     rgb_array = np.zeros((gray_result.size()[0], gray_result.size()[1], 3), 'uint8')
-    rgb_array[..., 0] = np.uint8(r_channel)
-    rgb_array[..., 1] = np.uint8(g_channel)
-    rgb_array[..., 2] = np.uint8(b_channel)
+    rgb_array[..., 0] = np.uint8(r_channel.cpu())
+    rgb_array[..., 1] = np.uint8(g_channel.cpu())
+    rgb_array[..., 2] = np.uint8(b_channel.cpu())
     #### convert result to img ####
     output_img = Image.fromarray(rgb_array)
     #### save result ####
