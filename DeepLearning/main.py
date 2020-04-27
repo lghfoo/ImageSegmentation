@@ -185,6 +185,9 @@ def test(args):
 
 def predict(args):
     assert (args.i is not None or args.predictf is not None) and (args.im is not None or args.iml is not None) and args.ds is not None
+    use_gpus = [0]
+    if args.gpus is not None:
+        use_gpus =  [int(g.strip()) for g in args.gpus.split(',')]
     nets = []
     if args.predictf is not None:
         nets_file = open(args.predictf, "r")
@@ -205,6 +208,9 @@ def predict(args):
             print('warning: cannot find {}, skip.'.format(net_model))
             continue
         net = net_from_type_string(net_type, get_num_classes(args.ds))
+
+        net = torch.nn.DataParallel(net, device_ids=use_gpus).cuda()
+
         net.load_state_dict(torch.load(net_model))
         if args.iml is None:
             predictor.predict(net, args.im, args.o, validate.get_dataset_classes(args.ds), need_dbl=dbl)
