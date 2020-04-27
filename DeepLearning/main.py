@@ -38,6 +38,7 @@ net_to_train/test/predict: [
     pspnet,
     danet,
     deeplabv3,
+    deeplabv3_res101,
     emanet,
     emanet_res101
 ]
@@ -120,6 +121,8 @@ def net_from_type_string(net_type, num_classes):
         return FCNResNet50(num_classes)
     elif net_type == 'deeplabv3':
         return DeepLabv3(num_classes)
+    elif net_type == 'deeplabv3_res101':
+        return DeepLabv3(num_classes, 101)
     elif net_type == 'emanet':
         return EMANet(num_classes)
     elif net_type == 'emanet_res101':
