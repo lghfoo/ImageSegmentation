@@ -1,0 +1,6 @@
+../../CamVid/images/test/0001TP_008550.png
+../../CamVid/images/test/0001TP_009360.png
+../../CamVid/images/test/0001TP_010380.png
+../../CamVid/images/test/Seq05VD_f00000.png
+../../CamVid/images/test/Seq05VD_f01710.png
+../../CamVid/images/test/Seq05VD_f05100.png
