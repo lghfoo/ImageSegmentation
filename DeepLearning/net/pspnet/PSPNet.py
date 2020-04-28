@@ -29,7 +29,7 @@ class PSPNet(nn.Module):
         super(PSPNet, self).__init__()
         self.num_classes = num_classes
         self.bins = bins
-        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=True, num_classes=self.num_classes)
+        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
         for n, m in self.pretrained.backbone.layer3.named_modules():
             if 'conv2' in n:
                 m.dilation, m.padding, m.stride = (2, 2), (2, 2), (1, 1)
