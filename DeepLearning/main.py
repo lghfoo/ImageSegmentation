@@ -173,7 +173,6 @@ def train(args):
 
 def test(args):
     net = net_from_type_string(args.test, get_num_classes(args.ds))
-    net = torch.nn.DataParallel(net, device_ids=args.gpus).cuda()
     config = tester.TestConfig()
     config.num_classes = get_num_classes(args.ds)
     if args.i is not None:
@@ -188,6 +187,7 @@ def test(args):
         config.split = args.sp
     if args.gpus is not None:
         config.gpus = [int(g.strip()) for g in args.gpus.split(',')]
+    net = torch.nn.DataParallel(net, device_ids=config.gpus).cuda()
     tester.test(net, config)
 
 def predict(args):
