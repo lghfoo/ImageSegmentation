@@ -75,6 +75,9 @@ examples:
     sudo python main.py -test segnet -i './segnet.pth' -b 4 -d '../../CamVid' -ds 'camvid11' -sp train
     sudo python main.py -predictf './nets_file.txt' -ds 'camvid11' -iml './images_to_predict.txt'
     sudo python ./main.py -train pspnet -o './pspnet.pth' -l 0.01 -e 20 -b 4 -d '../../CamVid' -opt adam -ds 'camvid11'
+    python main.py -train deeplabv3_res101 -o './deeplabv3_voc2012.pth' -l 0.01 -e 40 -b 8 -d '../../VOC2012AUG/' -opt adam -ds 'voc2012' -sp train_aug
+    python main.py -train deeplabv3_res101 -o './deeplabv3_res101.pth' -l 0.01 -e 40 -b 8 -d '../../CamVid/' -opt adam -ds 'camvid11' -gpus 0
+
 
 [Content in images_to_predict.txt]
 ../../CamVid/images/test/0001TP_008551.png

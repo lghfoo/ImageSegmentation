@@ -85,7 +85,7 @@ class DANet(nn.Module):
     def __init__(self, nclass, norm_layer=nn.BatchNorm2d):
         super(DANet, self).__init__()
         self.num_classes = nclass
-        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
+        self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=True, num_classes=self.num_classes)
         self.head = DANetHead(2048, 2048, norm_layer)     
     
     def forward(self, x):
