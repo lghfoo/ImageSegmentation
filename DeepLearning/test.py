@@ -29,7 +29,7 @@ class TestConfig:
 
 def test(net, test_config):
     global test_log_file
-    test_filename = './log/test/{}.{}.txt'.format(type(net).__name__, time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime()))
+    test_filename = './log/test/{}.{}.txt'.format(type(net.module).__name__, time.strftime("%a_%b_%d_%H_%M_%S_%Y", time.localtime()))
     if not os.path.exists(os.path.dirname(test_filename)):
         try:
             os.makedirs(os.path.dirname(test_filename))
@@ -44,9 +44,6 @@ def test(net, test_config):
     log('dataset: {}'.format(test_config.dataset))
     
     net.load_state_dict(torch.load(test_config.model_path))
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # net.to(device)
-    net = torch.nn.DataParallel(net, device_ids=test_config.gpus).cuda()
     testset = validate.get_dataset(test_config.dataset, test_config.split, test_config.data_root)
     
     global_accuracy, classes_avg_accuracy, mIoU, test_loss, classes_accuracy, classes_iou = validate.validate(net, testset, test_config.batch_size, test_config.gpus, test_config.criterion, test_config.num_classes)
@@ -56,7 +53,7 @@ def test(net, test_config):
     log("classes_avg_accuracy: " + str(classes_avg_accuracy))
     log("global_accuracy: " + str(global_accuracy))
     log("test_loss: " + str(test_loss))
-    for i in range(net.num_classes):
+    for i in range(net.module.num_classes):
         log('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, classes_iou[i], classes_accuracy[i], validate.get_dataset_classes(test_config.dataset)[i]))
     
     log('******** test end [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
