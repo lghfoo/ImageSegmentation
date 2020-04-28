@@ -120,11 +120,11 @@ def train(net, train_config):
 
             log('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, loss.item()))
 
-        if train_config.optimizer == 'poly':
-            log('[%d] learning_rate: %f' % (epoch+1, lr))
-            lr = train_config.learning_rate * pow(1- (epoch+1)/epoch_count, 0.9)
-            for g in optimizer.param_groups:
-                g['lr'] = lr
+            if train_config.optimizer == 'poly':
+                lr = train_config.learning_rate * pow(1- (epoch+1)/epoch_count, 0.9)
+                log('[%d] learning_rate: %f' % (epoch+1, lr))
+                for g in optimizer.param_groups:
+                    g['lr'] = lr
 
             # break
         train_loss /= iter_count
