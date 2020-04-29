@@ -16,6 +16,7 @@ from net.emanet.EMANet import EMANet
 from dataset.CamVid import CamVid
 from dataset.CamVid import CamVid11
 from dataset.VOC2012 import VOC2012
+from dataset.SiftFlow import SiftFlow
 import train as trainer
 import test as tester
 import predict as predictor
@@ -54,7 +55,8 @@ optimizer: [
 dataset: [
     camvid,
     camvid11,
-    voc2012
+    voc2012,
+    sift_flow,
 ]
 
 split: [
@@ -140,6 +142,8 @@ def get_num_classes(dataset):
         return len(CamVid.classes)
     if dataset == 'voc2012':
         return len(VOC2012.classes)
+    if dataset == 'sift_flow':
+        return len(SiftFlow.classes)
     print('error: unkown dataset')
     return 0
 
