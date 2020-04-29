@@ -122,9 +122,10 @@ def train(net, train_config):
 
             if train_config.optimizer == 'poly':
                 lr = train_config.learning_rate * pow(1- (cur_iter+1)/total_iter, 0.9)
-                log('[%d] learning_rate: %f' % (epoch+1, lr))
                 for g in optimizer.param_groups:
                     g['lr'] = lr
+
+        log('[%d] learning_rate: %f' % (epoch+1, train_config.learning_rate * pow(1- (cur_iter+1)/total_iter, 0.9)))
 
             # break
         train_loss /= iter_count
