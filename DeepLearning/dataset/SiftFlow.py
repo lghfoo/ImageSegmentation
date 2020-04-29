@@ -36,11 +36,11 @@ class SiftFlow(VisionDataset):
 
     SiftFlowClass = namedtuple('SiftFlowClass', ['name', 'id', 'color'])
     classes = [
-        SiftFlowClass('void', 0, (0, 0, 0)),    
-        SiftFlowClass('awning', 1, (128, 0, 0)),
-        SiftFlowClass('balcony', 2, (0, 128, 0)),
-        SiftFlowClass('bird', 3, (128, 128, 0)),
-        SiftFlowClass('boat', 4, (0, 0, 128)),
+        SiftFlowClass('background', 0, (0, 0, 0)),
+        SiftFlowClass('awning', 1, (128, 0, 0)),  
+        SiftFlowClass('balcony', 2, (0, 128, 0)), 
+        SiftFlowClass('bird', 3, (128, 128, 0)),    
+        SiftFlowClass('boat', 4, (0, 0, 128)),      
         SiftFlowClass('bridge', 5, (128, 0, 128)),
         SiftFlowClass('building', 6, (0, 128, 128)),
         SiftFlowClass('bus', 7, (128, 128, 128)),
@@ -67,6 +67,7 @@ class SiftFlow(VisionDataset):
         SiftFlowClass('sun', 28, (192, 192, 128)),
         SiftFlowClass('tree', 29, (0, 0, 64)),
         SiftFlowClass('window', 30, (128, 0, 64)),
+        SiftFlowClass('void', 31, (0, 128, 64)),
     ]
 
     # ignores = [
