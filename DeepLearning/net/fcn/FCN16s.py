@@ -70,7 +70,7 @@ class FCN16s(nn.Module):
         # 第三层
         self.fc_conv3 = nn.Conv2d(in_channels=4096, out_channels=self.num_classes, kernel_size=1)
         self.deconv2 = nn.ConvTranspose2d(self.num_classes, self.num_classes, kernel_size=4, stride=2, bias=False)
-        self.initialize_weights()
+        # self.initialize_weights()
 
     def initialize_weights(self):
         vgg16 = torchvision.models.vgg16(pretrained=True)
