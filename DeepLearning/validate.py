@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from dataset import CamVid
 from dataset import VOC2012
+from dataset import SiftFlow
 class CrossEntropyLoss2d(nn.Module):
     def __init__(self, weight=None, ignore_index=255, reduction='mean'):
         super(CrossEntropyLoss2d, self).__init__()
@@ -49,6 +50,8 @@ def get_dataset(dataset, split, data_root):
         return CamVid.CamVid11(root=data_root, split=split)
     if dataset == 'voc2012':
         return VOC2012.VOC2012(root=data_root, split=split)
+    if dataset == 'sift_flow':
+        return SiftFlow.SiftFlow(root=data_root, split=split)
     print('error: unkown dataset')
 
 def get_dataset_classes(dataset):
@@ -58,6 +61,8 @@ def get_dataset_classes(dataset):
         return CamVid.CamVid11.classes
     if dataset == 'voc2012':
         return VOC2012.VOC2012.classes
+    if dataset == 'sift_flow':
+        return SiftFlow.SiftFlow.classes
     print('error: unkown dataset')
 
 # input: net, dataset, batch_size, device, criterion
