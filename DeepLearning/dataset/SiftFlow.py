@@ -124,3 +124,13 @@ class SiftFlow(VisionDataset):
 
     def __len__(self):
         return len(self.images)
+
+
+if __name__ == '__main__':
+    def test():
+        data_root = r''
+        trainset = SiftFlow(root=data_root, split='train')
+        train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=False, num_workers=0)
+        for i,data in enumerate(train_dataloader):
+            pass
+    test()

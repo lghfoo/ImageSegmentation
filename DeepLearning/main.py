@@ -174,6 +174,7 @@ def train(args):
         config.gpu = args.gpu
     if args.gpus is not None:
         config.gpus = [int(g.strip()) for g in args.gpus.split(',')]
+    config.shuffle = args.nsf
     trainer.train(net, config)
 
 def test(args):
@@ -254,6 +255,7 @@ def main():
     parser.add_argument('-sp', help='the split to test')
     parser.add_argument('-gpu', help='the gpu to use')
     parser.add_argument('-gpus', help='the gpus to use')
+    parser.add_argument('-nsf', action='store_false', help='not shuffle training data')
     args = parser.parse_args()
     if args.train is not None:
         train(args)

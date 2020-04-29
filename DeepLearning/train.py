@@ -29,7 +29,8 @@ class TrainConfig:
         split='train',
         gpu=0,
         gpus=[0,1],
-        num_classes=20
+        num_classes=20,
+        shuffle=True
     ):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -44,6 +45,7 @@ class TrainConfig:
         self.gpu = gpu
         self.gpus=gpus
         self.num_classes = num_classes
+        self.shuffle = shuffle
 
 
 def train(net, train_config):
@@ -65,13 +67,11 @@ def train(net, train_config):
     log('optimizer: {}'.format(train_config.optimizer))
     log('dataset: {}'.format(train_config.dataset))
     log('split: {}'.format(train_config.split))
-    if train_config.trained_model_path is not None:
-        net.load_state_dict(torch.load(train_config.trained_model_path))
-    
     # device = torch.device("cuda:{}".format(train_config.gpu) if torch.cuda.is_available() else "cpu")
     # net.to(device)
     net = torch.nn.DataParallel(net, device_ids=train_config.gpus).cuda()
-
+    if train_config.trained_model_path is not None:
+        net.load_state_dict(torch.load(train_config.trained_model_path))
     optimizer = None
     if train_config.optimizer == 'adagrad':
         optimizer = optim.Adagrad(net.parameters(), lr=train_config.learning_rate)
@@ -92,7 +92,7 @@ def train(net, train_config):
     epoch_count = train_config.epoch_count
     trainset = validate.get_dataset(train_config.dataset, train_config.split, train_config.data_root)
     valset = validate.get_dataset(train_config.dataset, 'val', train_config.data_root)
-    train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=0)
+    train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=train_config.shuffle, num_workers=0)
     criterion = train_config.criterion
     model_path = train_config.model_path
     ### begin train
