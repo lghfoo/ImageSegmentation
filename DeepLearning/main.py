@@ -12,6 +12,7 @@ from net.pspnet.PSPNet import PSPNet
 from net.pfnet.PFNet import PFNet
 from net.danet.DANet import DANet
 from net.deeplabv3.DeepLabv3 import DeepLabv3
+from net.deeplabv3.CustomDeepLabv3 import CustomDeepLabv3
 from net.emanet.EMANet import EMANet
 from dataset.CamVid import CamVid
 from dataset.CamVid import CamVid11
@@ -126,7 +127,8 @@ def net_from_type_string(net_type, num_classes):
     elif net_type == 'fcn_resnet50':
         return FCNResNet50(num_classes)
     elif net_type == 'deeplabv3':
-        return DeepLabv3(num_classes)
+        # return DeepLabv3(num_classes)
+        return CustomDeepLabv3(num_classes)
     elif net_type == 'deeplabv3_res101':
         return DeepLabv3(num_classes, 101)
     elif net_type == 'emanet':
