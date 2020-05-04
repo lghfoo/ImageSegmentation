@@ -4,11 +4,17 @@ import torchvision
 from torchvision.models import resnet
 from torchvision.models._utils import IntermediateLayerGetter
 from torchvision.models.utils import load_state_dict_from_url
-from torchvision.models import resnet
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead, DeepLabV3
 from torchvision.models.segmentation.fcn import FCN, FCNHead
 
-def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True, dilation=[False, True, True]):
+model_urls = {
+    'fcn_resnet50_coco': None,
+    'fcn_resnet101_coco': 'https://download.pytorch.org/models/fcn_resnet101_coco-7ecb50ca.pth',
+    'deeplabv3_resnet50_coco': None,
+    'deeplabv3_resnet101_coco': 'https://download.pytorch.org/models/deeplabv3_resnet101_coco-586e9e4e.pth',
+}
+
+def segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True, dilation=[False, True, True]):
     backbone = resnet.__dict__[backbone_name](
         pretrained=pretrained_backbone,
         replace_stride_with_dilation=dilation)
@@ -37,7 +43,7 @@ def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True
 def _load_model(arch_type, backbone, pretrained, progress, num_classes, aux_loss, dilation=[False, True, True], **kwargs):
     if pretrained:
         aux_loss = True
-    model = _segm_resnet(arch_type, backbone, num_classes, aux_loss, dilation, **kwargs)
+    model = segm_resnet(arch_type, backbone, num_classes, aux_loss, dilation, **kwargs)
     if pretrained:
         arch = arch_type + '_' + backbone + '_coco'
         model_url = model_urls[arch]
