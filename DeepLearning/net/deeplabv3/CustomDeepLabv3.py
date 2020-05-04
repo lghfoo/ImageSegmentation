@@ -77,13 +77,21 @@ def deeplabv3_resnet101(pretrained=False, progress=True,
     return _load_model('deeplabv3', 'resnet101', pretrained, progress, num_classes, aux_loss, dilation, **kwargs)
 
 class CustomDeepLabv3(nn.Module):
-    def __init__(self, num_classes,n_layers=50):
+    def __init__(self, num_classes,n_layers=50, output_stride=16):
         super(CustomDeepLabv3, self).__init__()
+        assert(output_stride in [4, 8, 16, 32])
         self.num_classes = num_classes
+        self.output_stride = output_stride
+        stride_dict = {
+            4: [True, True, True],
+            8: [False, True, True],
+            16: [False, False, True],
+            32: [False, False, False]
+        }
         if n_layers == 50:
-            self.pretrained = deeplabv3_resnet50(pretrained=False, num_classes=self.num_classes, dilation=[False, False, True])
+            self.pretrained = deeplabv3_resnet50(pretrained=False, num_classes=self.num_classes, dilation=stride_dict[self.output_stride])
         elif n_layers == 101:
-            self.pretrained = deeplabv3_resnet101(pretrained=False, num_classes=self.num_classes, dilation=[False, False, True])
+            self.pretrained = deeplabv3_resnet101(pretrained=False, num_classes=self.num_classes, dilation=stride_dict[self.output_stride])
         else:
             print("layer num error")
     

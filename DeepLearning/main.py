@@ -105,7 +105,7 @@ segnet
 ./segnet.pth
 """
 
-def net_from_type_string(net_type, num_classes):
+def net_from_type_string(net_type, num_classes, output_stride=16):
     if net_type == 'fcn_alex':
         return AlexNetFCN(num_classes)
     elif net_type == 'fcn_8s':
@@ -128,7 +128,7 @@ def net_from_type_string(net_type, num_classes):
         return FCNResNet50(num_classes)
     elif net_type == 'deeplabv3':
         # return DeepLabv3(num_classes)
-        return CustomDeepLabv3(num_classes)
+        return CustomDeepLabv3(num_classes, output_stride=output_stride)
     elif net_type == 'deeplabv3_res101':
         return DeepLabv3(num_classes, 101)
     elif net_type == 'emanet':
@@ -151,7 +151,8 @@ def get_num_classes(dataset):
     return 0
 
 def train(args):
-    net = net_from_type_string(args.train, get_num_classes(args.ds))
+    output_stride = 16 if args.ost is None else args.ost
+    net = net_from_type_string(args.train, get_num_classes(args.ds), output_stride=output_stride)
     config = trainer.TrainConfig()
     config.num_classes = get_num_classes(args.ds)
     if args.o is not None:
@@ -180,7 +181,8 @@ def train(args):
     trainer.train(net, config)
 
 def test(args):
-    net = net_from_type_string(args.test, get_num_classes(args.ds))
+    output_stride = 16 if args.ost is None else args.ost
+    net = net_from_type_string(args.test, get_num_classes(args.ds), output_stride=output_stride)
     config = tester.TestConfig()
     config.num_classes = get_num_classes(args.ds)
     if args.i is not None:
@@ -200,6 +202,7 @@ def test(args):
 
 def predict(args):
     assert (args.i is not None or args.predictf is not None) and (args.im is not None or args.iml is not None) and args.ds is not None
+    output_stride = 16 if args.ost is None else args.ost
     use_gpus = [0]
     if args.gpus is not None:
         use_gpus =  [int(g.strip()) for g in args.gpus.split(',')]
@@ -222,7 +225,7 @@ def predict(args):
         if not os.path.exists(net_model):
             print('warning: cannot find {}, skip.'.format(net_model))
             continue
-        net = net_from_type_string(net_type, get_num_classes(args.ds))
+        net = net_from_type_string(net_type, get_num_classes(args.ds), output_stride=output_stride)
 
         net = torch.nn.DataParallel(net, device_ids=use_gpus).cuda()
 
@@ -258,6 +261,7 @@ def main():
     parser.add_argument('-gpu', help='the gpu to use')
     parser.add_argument('-gpus', help='the gpus to use')
     parser.add_argument('-nsf', action='store_false', help='not shuffle training data')
+    parser.add_argument('-ost', type=int, help='output stride')
     args = parser.parse_args()
     if args.train is not None:
         train(args)
