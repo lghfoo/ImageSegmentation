@@ -14,7 +14,7 @@ model_urls = {
     'deeplabv3_resnet101_coco': 'https://download.pytorch.org/models/deeplabv3_resnet101_coco-586e9e4e.pth',
 }
 
-def segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True, dilation=[False, True, True]):
+def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True, dilation=[False, True, True]):
     backbone = resnet.__dict__[backbone_name](
         pretrained=pretrained_backbone,
         replace_stride_with_dilation=dilation)
@@ -43,7 +43,7 @@ def segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True,
 def _load_model(arch_type, backbone, pretrained, progress, num_classes, aux_loss, dilation=[False, True, True], **kwargs):
     if pretrained:
         aux_loss = True
-    model = segm_resnet(arch_type, backbone, num_classes, aux_loss, dilation, **kwargs)
+    model = _segm_resnet(arch_type, backbone, num_classes, aux_loss, dilation, **kwargs)
     if pretrained:
         arch = arch_type + '_' + backbone + '_coco'
         model_url = model_urls[arch]
@@ -81,9 +81,9 @@ class CustomDeepLabv3(nn.Module):
         super(CustomDeepLabv3, self).__init__()
         self.num_classes = num_classes
         if n_layers == 50:
-            self.pretrained = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=False, num_classes=self.num_classes, dilation=[False, False, True])
+            self.pretrained = deeplabv3_resnet50(pretrained=False, num_classes=self.num_classes, dilation=[False, False, True])
         elif n_layers == 101:
-            self.pretrained = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=False, num_classes=self.num_classes, dilation=[False, False, True])
+            self.pretrained = deeplabv3_resnet101(pretrained=False, num_classes=self.num_classes, dilation=[False, False, True])
         else:
             print("layer num error")
     
