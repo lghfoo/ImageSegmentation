@@ -241,6 +241,21 @@ def predict(args):
                 predictor.predict(net, line.strip(), args.o, validate.get_dataset_classes(args.ds), need_dbl=dbl)
             list_file.close()
 
+def stat_param_cnt():
+    targets = [
+        'fcn_8s',
+        'segnet',
+        'pspnet',
+        'deeplabv3',
+        'danet'
+    ]
+    for t in targets:
+        net = net_from_type_string(t, 12)
+        num_params = 0
+        for param in net.parameters():
+            num_params += param.numel()
+        print(num_params / 1e6)
+
 def main():
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, epilog=detail_usage)
     parser.add_argument('-train', help='train model')
@@ -262,8 +277,11 @@ def main():
     parser.add_argument('-gpus', help='the gpus to use')
     parser.add_argument('-nsf', action='store_false', help='not shuffle training data')
     parser.add_argument('-ost', type=int, help='output stride')
+    parser.add_argument('-stat', action='store_true', help='display param count')
     args = parser.parse_args()
-    if args.train is not None:
+    if args.stat:
+        stat_param_cnt()
+    elif args.train is not None:
         train(args)
     elif args.test is not None:
         test(args)
