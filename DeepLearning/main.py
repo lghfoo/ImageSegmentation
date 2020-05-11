@@ -254,7 +254,7 @@ def stat_param_cnt():
         num_params = 0
         for param in net.parameters():
             num_params += param.numel()
-        print(num_params / 1e6)
+        print('{}: {:.2f} MB'.format(t, num_params / 1e6))
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, epilog=detail_usage)
