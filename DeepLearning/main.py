@@ -217,10 +217,10 @@ def predict(args):
         #     print(index, line)
         mem_usage = lines[8]
         vals = mem_usage.split(' ')
-        for index, val in enumerate(vals):
-            print(index, val)
-    get_gpu_mem_usage()
-    return 
+        # for index, val in enumerate(vals):
+        #     print(index, val)
+        mem_usage = vals[21]
+        return mem_usage
 
     assert (args.i is not None or args.predictf is not None) and (args.im is not None or args.iml is not None) and args.ds is not None
     output_stride = 16 if args.ost is None else args.ost
@@ -268,6 +268,8 @@ def predict(args):
                     continue
                 predictor.predict(net, line.strip(), args.o, validate.get_dataset_classes(args.ds), need_dbl=dbl)
             list_file.close()
+    mem_usage = get_gpu_mem_usage()
+    print('use {}'.format(mem_usage))
 
 def stat_param_cnt():
     targets = [
