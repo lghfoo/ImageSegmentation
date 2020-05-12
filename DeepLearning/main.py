@@ -217,9 +217,10 @@ def predict(args):
         nets_file = open(args.predictf, "r")
         infos = nets_file.read().split('\n\n')
         for info in infos:
-            t = info.split('\n')[0]
-            m = info.split('\n')[1]
-            nets.append( (t, m) )
+            # t = info.split('\n')[0]
+            # m = info.split('\n')[1]
+            t,m,p = tuple(info.split('\n'))
+            nets.append( (t, m, p) )
         nets_file.close()
     else:
         nets.append( (args.predict, args.i) )
@@ -228,12 +229,16 @@ def predict(args):
         net_type = net_info[0]
         dbl = net_type in ['pspnet', 'danet', 'deeplabv3']
         net_model = net_info[1]
+        parallel = net_info[2]
         if not os.path.exists(net_model):
             print('warning: cannot find {}, skip.'.format(net_model))
             continue
         net = net_from_type_string(net_type, get_num_classes(args.ds), output_stride=output_stride)
 
-        net = torch.nn.DataParallel(net, device_ids=use_gpus).cuda()
+        if parallel == 'p':
+            net = torch.nn.DataParallel(net, device_ids=use_gpus).cuda()
+        else:
+            net.to(id=use_gpus)
 
         net.load_state_dict(torch.load(net_model))
         if args.iml is None:

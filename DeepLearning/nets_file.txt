@@ -1,14 +1,19 @@
 fcn_8s
 ./fcn_8s.pth
+p
 
 segnet
 ./segnet.pth
+np
 
 danet
 ./danet.pth
+p
 
 pspnet
 ./pspnet.pth
+p
 
 deeplabv3
 ./deeplabv3.pth
+p
