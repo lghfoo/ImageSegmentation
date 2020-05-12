@@ -215,6 +215,7 @@ def predict(args):
         lines = out.splitlines()
         for index,line in enumerate(lines):
             print(index, line)
+    get_gpu_mem_usage()
     return 
 
     assert (args.i is not None or args.predictf is not None) and (args.im is not None or args.iml is not None) and args.ds is not None
