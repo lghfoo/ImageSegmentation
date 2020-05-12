@@ -29,6 +29,7 @@ class PSPNet(nn.Module):
         super(PSPNet, self).__init__()
         self.num_classes = num_classes
         self.bins = bins
+        self.training = False
         self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
         for n, m in self.pretrained.backbone.layer3.named_modules():
             if 'conv2' in n:
@@ -50,10 +51,41 @@ class PSPNet(nn.Module):
             nn.Dropout2d(p=0.1),
             nn.Conv2d(512, self.num_classes, kernel_size=1)
         )
+        if self.training:
+            self.aux = nn.Sequential(
+                nn.Conv2d(1024, 256, kernel_size=3, padding=1, bias=False),
+                nn.BatchNorm2d(256),
+                nn.ReLU(inplace=True),
+                nn.Dropout2d(p=nn.Dropout2d(p=0.1)),
+                nn.Conv2d(256, self.num_classes, kernel_size=1)
+            )
 
     def forward(self, x):
         x_size = x.size()[2:]
         x = self.pretrained.backbone(x)["out"]
+        # backbone = self.pretrained.backbone
+        # x = backbone.maxpool(backbone.relu(backbone.conv1(x)))
+        # x = backbone.layer1(x)
+        # x = backbone.layer2(x)
+        # x = backbone.layer3(x)
+        
+        # x_tmp = self.layer3(x)
+        # x = self.layer4(x_tmp)
+        # if self.use_ppm:
+        #     x = self.ppm(x)
+        # x = self.cls(x)
+        # x = F.interpolate(x, size=x_size, mode='bilinear', align_corners=True)
+
+        # if self.training:
+        #     aux = self.aux(x_tmp)
+        #     # if self.zoom_factor != 1:
+        #     aux = F.interpolate(aux, size=x_size, mode='bilinear', align_corners=True)
+        #     # main_loss = self.criterion(x, y)
+        #     # aux_loss = self.criterion(aux, y)
+        #     # return x.max(1)[1], main_loss, aux_loss
+        #     return x, aux
+        # else:
+        #     return x
         x = self.ppm(x)
         x = self.cls(x)
         x = F.interpolate(x, size=x_size, mode='bilinear', align_corners=True)

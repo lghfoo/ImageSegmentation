@@ -1,14 +1,14 @@
 fcn_8s
 ./fcn_8s.pth
 
-fcn_16s
-./fcn_16s.pth
-
-fcn_32s
-./fcn_32s.pth
-
-fcn_alex
-./fcn_alex.pth
-
 segnet
 ./segnet.pth
+
+danet
+./danet.pth
+
+pspnet
+./pspnet.pth
+
+deeplabv3
+./deeplabv3.pth

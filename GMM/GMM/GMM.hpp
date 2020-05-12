@@ -504,9 +504,9 @@ namespace GMM {
 			Model.Initialize(InImage, UseKMeansInitialize, UseGMMInitialize);
 			auto& Context = Model.Context;
 			auto& Condition = Model.Condition;
-			printf("**************** Train %s ****************\n", Model.TypeString().c_str());
-			printf("Model: \n%s", Model.ToString().c_str());
-			printf("Context: \n%s\n", Context.ToString().c_str());
+			//printf("**************** Train %s ****************\n", Model.TypeString().c_str());
+			//printf("Model: \n%s", Model.ToString().c_str());
+			//printf("Context: \n%s\n", Context.ToString().c_str());
 			// 迭代求解
 			while (!Condition.IsSatisfied(Context)) {
 				printf("======== Iter #%d ========\n", Context.IterationCount + 1);
@@ -516,12 +516,12 @@ namespace GMM {
 				Model.MStep(InImage);
 				// Update Context
 				Context.IterationCount++;
-				printf("Model: \n%s", Model.ToString().c_str());
-				printf("Context: \n%s\n", Context.ToString().c_str());
+				//printf("Model: \n%s", Model.ToString().c_str());
+				//printf("Context: \n%s\n", Context.ToString().c_str());
 			}
-			printf("-------- ModifiedGMMSegmentation End --------\n");
-			printf("Model: \n%s", Model.ToString().c_str());
-			printf("Context: \n%s\n", Context.ToString().c_str());
+			//printf("-------- ModifiedGMMSegmentation End --------\n");
+			//printf("Model: \n%s", Model.ToString().c_str());
+			//printf("Context: \n%s\n", Context.ToString().c_str());
 		}
 	};
 
@@ -574,14 +574,14 @@ namespace GMM {
 			// b) 更新均值向量
 			double Threshold = 1e-8;
 			HasMeansUpdated = false;
-			printf("================ Update Means ================\n");
+			//printf("================ Update Means ================\n");
 			for (int i = 0; i < K; i++) {
 				if (Clusteres[i].Count == 0) {
-					printf("Diff #%d: cluster element count is 0\n", i);
+					//printf("Diff #%d: cluster element count is 0\n", i);
 					continue;
 				}
 				double Diff = Math::Abs(OutMeans[i] - Clusteres[i].Center());
-				printf("Diff #%d: %.6f\n", i, Diff);
+				//printf("Diff #%d: %.6f\n", i, Diff);
 				if (Diff > Threshold) {
 					OutMeans[i] = Clusteres[i].Center();
 					HasMeansUpdated = true;
@@ -882,9 +882,9 @@ namespace GMM {
 			std::vector<cv::Mat>& PostProbability
 		) {
 			UpdateCache(GaussianDistributions);
-			printf(">>>>>>>>>>>>>>>> E-Step....\n");
+			//printf(">>>>>>>>>>>>>>>> E-Step....\n");
 			for (int i = 0; i < K; i++) {
-				printf("Estimate %d/%d\n", i + 1, K);
+				//printf("Estimate %d/%d\n", i + 1, K);
 				//auto Start = std::clock();
 #pragma omp parallel for
 				for (int NIndex = 0; NIndex < N; NIndex++) {
@@ -911,10 +911,10 @@ namespace GMM {
 			std::vector<GaussianType>& GaussianDistributions,
 			std::vector<double>& GCache
 		) {
-			printf(">>>>>>>>>>>>>>>> M-Step....\n");
+			//printf(">>>>>>>>>>>>>>>> M-Step....\n");
 			// 计算上一次迭代的Gij
 			{
-				printf("Compute GCache....\n");
+				//printf("Compute GCache....\n");
 #pragma omp parallel for
 				for (int i = 0; i < InImage.rows; i++) {
 					for (int j = 0; j < InImage.cols; j++) {
@@ -929,7 +929,7 @@ namespace GMM {
 
 			// 更新每个高斯分布
 			{
-				printf("Update Gaussian Parameters....\n");
+				//printf("Update Gaussian Parameters....\n");
 				//auto Start = std::clock();
 #pragma omp parallel for
 				for (int i = 0; i < K; i++) {
@@ -972,7 +972,7 @@ namespace GMM {
 
 			// 更新系数
 			{
-				printf("Update Coefficient....\n");
+				//printf("Update Coefficient....\n");
 #pragma omp parallel for
 				for (int i = 0; i < InImage.rows; i++) {
 					for (int j = 0; j < InImage.cols; j++) {
@@ -996,7 +996,7 @@ namespace GMM {
 
 			// 计算似然函数
 			{
-				printf("Compute LogLikehood: ");
+				//printf("Compute LogLikehood: ");
 				UpdateCache(GaussianDistributions);
 				// first term
 				double FirstTerm = 0;
@@ -1519,7 +1519,11 @@ extern "C" {
 		printf("Arg: \n%s\n", GMMArg.ToString().c_str());
 
 		GMM::SegOutput GMMOutput;
+		auto Begin = std::clock();
 		GMM::Segmentation(GMMArg, GMMOutput);
+		auto End = std::clock();
+		auto Elapse = End - Begin;
+		printf("Use %d ms\n", Elapse);
 
 		Output->OutWidth = GMMOutput.SegmentedImage.cols;
 		Output->OutHeight = GMMOutput.SegmentedImage.rows;

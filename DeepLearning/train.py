@@ -102,6 +102,8 @@ def train(net, train_config):
     for epoch in range(epoch_count):
         train_loss = 0.0
         iter_count = 0
+        if hasattr(net, 'training'):
+            net.training = True
         for i, data in enumerate(train_dataloader):
             # inputs = data[0].to(device)
             # labels = data[1].to(device)
@@ -110,6 +112,9 @@ def train(net, train_config):
 
             optimizer.zero_grad()
             outputs = net(inputs)
+
+            
+            # todo : aux loss
             loss = criterion(outputs, labels.squeeze(1).long())
             loss.backward()
             optimizer.step()
@@ -131,6 +136,8 @@ def train(net, train_config):
         train_loss /= iter_count
 
         ### validate
+        if hasattr(net, 'training'):
+            net.training = False
         global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou = validate.validate(net, valset, batch_size, train_config.gpus, criterion, num_classes=train_config.num_classes)
 
         if best_global_accuracy is None or best_global_accuracy < global_accuracy:
