@@ -7,6 +7,7 @@ import os
 import errno
 import shutil
 import torch
+import gc
 
 def mkdir_if_not_exists(dir_name):
     if not os.path.exists(dir_name):
@@ -20,6 +21,21 @@ def get_module(net):
     if hasattr(net, 'module'):
         return net.module
     return net
+
+def get_used_mem():
+    host_mem = 0
+    gpu_mem = 0
+
+    for obj in gc.get_objects():
+        if torch.is_tensor(obj):
+            mem = obj.numel()*obj.element_size()
+            if obj.is_cuda:
+                gpu_mem += mem
+            else:
+                host_mem += mem
+
+    # return host_mem, gpu_mem
+    return gpu_mem
 
 def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     images_dir = "./predict_results/images/"
@@ -40,11 +56,13 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     if need_dbl:
         img_tensor = torch.cat( (img_tensor, img_tensor), 0)  # double the batch size for BatchNormal2d
     #### predict ####
-    beg = time.time()
     if not hasattr(net, 'module'):
         img_tensor = img_tensor.cuda()
+    beg_mem = get_used_mem()
+    beg = time.time()
     outputs = net(img_tensor)
     end = time.time()
+    end_mem = get_used_mem()
     log_file.write('input: {}\ntime elapsed: {:.3f} ms\n\n'.format(input_image_path, (end-beg)*1000))
     _, pred = torch.max(outputs, 1)
     if need_dbl:
@@ -73,4 +91,4 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     if not os.path.exists(bak_labels_path):
         shutil.copy(input_image_path.replace('images', 'labels'), bak_labels_path)
     log_file.close()
-    print('finished predicting {}, use {} ms'.format(os.path.basename(input_image_path), (end-beg)*1000))
+    print('finished predicting {}, use {} ms, use {} bytes'.format(os.path.basename(input_image_path), (end-beg)*1000), (end_mem - beg_mem))
