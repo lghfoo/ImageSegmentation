@@ -217,11 +217,12 @@ def predict(args):
         #     print(index, line)
         mem_usage = lines[8]
         vals = mem_usage.split(' ')
-        for index, val in enumerate(vals):
-            print(index, val)
-        mem_usage = vals[21]
-        print('############# {}'.format(mem_usage))
-        return mem_usage
+        # for index, val in enumerate(vals):
+        #     print(index, val)
+        for val in vals:
+            if val.endswith('MiB'):
+                return val
+        return 'unkown MiB'
 
     assert (args.i is not None or args.predictf is not None) and (args.im is not None or args.iml is not None) and args.ds is not None
     output_stride = 16 if args.ost is None else args.ost
