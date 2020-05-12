@@ -223,7 +223,7 @@ def predict(args):
             nets.append( (t, m, p) )
         nets_file.close()
     else:
-        nets.append( (args.predict, args.i) )
+        nets.append( (args.predict, args.i, args.para) )
     
     for net_info in nets:
         net_type = net_info[0]
@@ -291,6 +291,7 @@ def main():
     parser.add_argument('-nsf', action='store_false', help='not shuffle training data')
     parser.add_argument('-ost', type=int, help='output stride')
     parser.add_argument('-stat', action='store_true', help='display param count')
+    parser.add_argument('-para',help='is model parallel')
     args = parser.parse_args()
     if args.stat:
         stat_param_cnt()
