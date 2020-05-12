@@ -227,7 +227,8 @@ class ParallelMultiModule(nn.Module):
 
     def forward(self, x):
         x_size = x.size()
-        out = [x]
+        # out = [x]
+        out = []
         for f in self.features:
             out.append(F.interpolate(f(x), x_size[2:], mode='bilinear', align_corners=True))
         out = torch.cat(out, 1)
