@@ -8,6 +8,8 @@ import errno
 import shutil
 import torch
 import gc
+import subprocess
+
 
 def mkdir_if_not_exists(dir_name):
     if not os.path.exists(dir_name):
@@ -37,7 +39,15 @@ def get_module(net):
 #     # return host_mem, gpu_mem
 #     return gpu_mem
 
+def get_gpu_mem_usage():
+    p = subprocess.Popen(["nvidia-smi"], stdout=subprocess.PIPE)
+    out = p.stdout.read()
+    print(out)
+    print(type(out))
+
 def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
+    get_gpu_mem_usage()
+    return
     images_dir = "./predict_results/images/"
     labels_dir = "./predict_results/labels/"    
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
