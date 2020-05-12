@@ -13,6 +13,7 @@ from net.pfnet.PFNet import PFNet
 from net.danet.DANet import DANet
 from net.deeplabv3.DeepLabv3 import DeepLabv3
 from net.deeplabv3.CustomDeepLabv3 import CustomDeepLabv3
+from net.multimodulenet.MMNet import MMNet
 from net.emanet.EMANet import EMANet
 from dataset.CamVid import CamVid
 from dataset.CamVid import CamVid11
@@ -42,7 +43,8 @@ net_to_train/test/predict: [
     deeplabv3,
     deeplabv3_res101,
     emanet,
-    emanet_res101
+    emanet_res101,
+    mmnet,
 ]
 
 optimizer: [
@@ -135,6 +137,8 @@ def net_from_type_string(net_type, num_classes, output_stride=16):
         return EMANet(num_classes)
     elif net_type == 'emanet_res101':
         return EMANet(num_classes, 101)
+    elif net_type == 'mmnet':
+        return MMNet(num_classes)
     print('error: unkown net type')
     return None
 
