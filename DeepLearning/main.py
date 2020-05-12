@@ -247,6 +247,7 @@ def predict(args):
         elif os.path.exists(args.iml):
             list_file = open(args.iml, "r")
             lines = list_file.read().split('\n')
+            print("#### predict use {} ####".format(type(predictor.get_module(net)).__name__))
             for line in lines:
                 if len(line) == 0:
                     continue
