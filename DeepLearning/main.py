@@ -217,7 +217,7 @@ def predict(args):
         #     print(index, line)
         mem_usage = lines[8]
         vals = mem_usage.split(' ')
-        for index, val in vals:
+        for index, val in enumerate(vals):
             print(index, val)
     get_gpu_mem_usage()
     return 
