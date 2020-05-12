@@ -22,20 +22,20 @@ def get_module(net):
         return net.module
     return net
 
-def get_used_mem():
-    host_mem = 0
-    gpu_mem = 0
+# def get_used_mem():
+#     host_mem = 0
+#     gpu_mem = 0
 
-    for obj in gc.get_objects():
-        if torch.is_tensor(obj):
-            mem = obj.numel()*obj.element_size()
-            if obj.is_cuda:
-                gpu_mem += mem
-            else:
-                host_mem += mem
+#     for obj in gc.get_objects():
+#         if torch.is_tensor(obj):
+#             mem = obj.numel()*obj.element_size()
+#             if obj.is_cuda:
+#                 gpu_mem += mem
+#             else:
+#                 host_mem += mem
 
-    # return host_mem, gpu_mem
-    return gpu_mem
+#     # return host_mem, gpu_mem
+#     return gpu_mem
 
 def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     images_dir = "./predict_results/images/"
@@ -58,11 +58,12 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     #### predict ####
     if not hasattr(net, 'module'):
         img_tensor = img_tensor.cuda()
-    beg_mem = get_used_mem()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    beg_mem = torch.cuda.memory_allocated(device=device)#get_used_mem()
     beg = time.time()
     outputs = net(img_tensor)
     end = time.time()
-    end_mem = get_used_mem()
+    end_mem = torch.cuda.memory_allocated(device=device)#get_used_mem()
     log_file.write('input: {}\ntime elapsed: {:.3f} ms\n\n'.format(input_image_path, (end-beg)*1000))
     _, pred = torch.max(outputs, 1)
     if need_dbl:
