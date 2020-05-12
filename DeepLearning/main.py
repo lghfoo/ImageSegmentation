@@ -83,6 +83,7 @@ examples:
     python main.py -train deeplabv3_res101 -o './deeplabv3_voc2012.pth' -l 0.01 -e 40 -b 8 -d '../../VOC2012AUG/' -opt adam -ds 'voc2012' -sp train_aug
     python main.py -train deeplabv3_res101 -o './deeplabv3_res101.pth' -l 0.01 -e 40 -b 8 -d '../../CamVid/' -opt adam -ds 'camvid11' -gpus 0
     python main.py -train fcn_16s -o './fcn_16s_sift_flow.pth' -l 0.0001 -e 40 -b 4 -d '../../sift-flow' -opt adam -ds 'sift_flow' -gpus 0
+     sudo python ./main.py -train mmnet -o './mmnet.pth' -l 0.01 -e 40 -b 4 -d '../../CamVid' -opt adam -ds 'camvid11' -gpus 0
 
 
 [Content in images_to_predict.txt]
