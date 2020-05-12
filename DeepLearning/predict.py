@@ -94,4 +94,4 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     if not os.path.exists(bak_labels_path):
         shutil.copy(input_image_path.replace('images', 'labels'), bak_labels_path)
     log_file.close()
-    print('finished predicting {}, use {} ms, use {} bytes'.format(os.path.basename(input_image_path), (end-beg)*1000, (end_mem - beg_mem)))
+    print('finished predicting {}, use {} ms, use {:.4f} MB'.format(os.path.basename(input_image_path), (end-beg)*1000, (end_mem - beg_mem)/(1024*1024)))
