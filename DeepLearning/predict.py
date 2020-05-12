@@ -38,6 +38,7 @@ def get_module(net):
 #     return gpu_mem
 
 def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
+    print("#### predict use {} ####".format(type(get_module(net)).__name__))
     images_dir = "./predict_results/images/"
     labels_dir = "./predict_results/labels/"    
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
