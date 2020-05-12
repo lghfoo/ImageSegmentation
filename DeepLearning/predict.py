@@ -16,11 +16,16 @@ def mkdir_if_not_exists(dir_name):
             if exc.errno != errno.EEXIST:
                 raise
 
+def get_module(net):
+    if hasattr(net, 'module'):
+        return net.module
+    return net
+
 def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     images_dir = "./predict_results/images/"
     labels_dir = "./predict_results/labels/"    
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
-    predict_dir = './predict_results/{}/{}/'.format(type(net.module).__name__, input_without_ext)
+    predict_dir = './predict_results/{}/{}/'.format(type(get_module(net)).__name__, input_without_ext)
     mkdir_if_not_exists(predict_dir)
     mkdir_if_not_exists(images_dir)
     mkdir_if_not_exists(labels_dir)
