@@ -24,6 +24,7 @@ import test as tester
 import predict as predictor
 import validate
 import os
+import subprocess
 
 detail_usage = """
 train model: -train net_to_train -o saved_model_path -l learning_rate -e epoch_count -b batch_size -d data_root -opt optimizer -i trained_model_path -ds dataset -sp train
@@ -207,6 +208,15 @@ def test(args):
     tester.test(net, config)
 
 def predict(args):
+    def get_gpu_mem_usage():
+        p = subprocess.Popen(["nvidia-smi"], stdout=subprocess.PIPE)
+        out = p.stdout.read()
+        out = str(out, encoding = "utf-8")  
+        lines = out.splitlines()
+        for index,line in enumerate(lines):
+            print(index, line)
+    return 
+
     assert (args.i is not None or args.predictf is not None) and (args.im is not None or args.iml is not None) and args.ds is not None
     output_stride = 16 if args.ost is None else args.ost
     use_gpus = [0]

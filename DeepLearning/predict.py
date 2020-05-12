@@ -39,16 +39,7 @@ def get_module(net):
 #     # return host_mem, gpu_mem
 #     return gpu_mem
 
-def get_gpu_mem_usage():
-    p = subprocess.Popen(["nvidia-smi"], stdout=subprocess.PIPE)
-    out = p.stdout.read()
-    out = str(out, encoding = "utf-8")  
-    print(out)
-    print(type(out))
-
 def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
-    get_gpu_mem_usage()
-    return
     images_dir = "./predict_results/images/"
     labels_dir = "./predict_results/labels/"    
     input_without_ext = os.path.splitext(os.path.basename(input_image_path))[0]
@@ -71,11 +62,11 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
         img_tensor = img_tensor.cuda()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # torch.cuda.empty_cache()
-    beg_mem = torch.cuda.memory_allocated(device=device)#get_used_mem()
+    # beg_mem = torch.cuda.memory_allocated(device=device)#get_used_mem()
     beg = time.time()
     outputs = net(img_tensor)
     end = time.time()
-    end_mem = torch.cuda.memory_allocated(device=device)#get_used_mem()
+    # end_mem = torch.cuda.memory_allocated(device=device)#get_used_mem()
     log_file.write('input: {}\ntime elapsed: {:.3f} ms\n\n'.format(input_image_path, (end-beg)*1000))
     _, pred = torch.max(outputs, 1)
     if need_dbl:
@@ -104,4 +95,4 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     if not os.path.exists(bak_labels_path):
         shutil.copy(input_image_path.replace('images', 'labels'), bak_labels_path)
     log_file.close()
-    print('finished predicting {}, use {} ms, use {:.4f} MB'.format(os.path.basename(input_image_path), (end-beg)*1000, (end_mem - beg_mem)/(1024*1024)))
+    print('finished predicting {}, use {} ms'.format(os.path.basename(input_image_path), (end-beg)*1000))
