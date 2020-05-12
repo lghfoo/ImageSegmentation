@@ -238,7 +238,8 @@ def predict(args):
         if parallel == 'p':
             net = torch.nn.DataParallel(net, device_ids=use_gpus).cuda()
         else:
-            net.to(id=use_gpus)
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            net.to(device)
 
         net.load_state_dict(torch.load(net_model))
         if args.iml is None:
