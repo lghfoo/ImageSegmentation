@@ -129,7 +129,7 @@ class PPM(nn.Module):
             ))
         self.features = nn.ModuleList(self.features)
         self.project = nn.Sequential(
-            nn.Conv2d(in_channels + 4 * reduction_dim, reduction_dim, 1, bias=False),
+            nn.Conv2d(in_dim + 4 * reduction_dim, reduction_dim, 1, bias=False),
             nn.BatchNorm2d(reduction_dim),
             nn.ReLU(),
             nn.Dropout(0.5))
