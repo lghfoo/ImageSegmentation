@@ -41,6 +41,8 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
         img_tensor = torch.cat( (img_tensor, img_tensor), 0)  # double the batch size for BatchNormal2d
     #### predict ####
     beg = time.time()
+    if not hasattr(net, 'module'):
+        img_tensor = img_tensor.cuda()
     outputs = net(img_tensor)
     end = time.time()
     log_file.write('input: {}\ntime elapsed: {:.3f} ms\n\n'.format(input_image_path, (end-beg)*1000))
