@@ -42,6 +42,7 @@ def get_module(net):
 def get_gpu_mem_usage():
     p = subprocess.Popen(["nvidia-smi"], stdout=subprocess.PIPE)
     out = p.stdout.read()
+    out = str(out, encoding = "utf-8")  
     print(out)
     print(type(out))
 
