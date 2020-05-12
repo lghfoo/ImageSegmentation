@@ -213,8 +213,12 @@ def predict(args):
         out = p.stdout.read()
         out = str(out, encoding = "utf-8")  
         lines = out.splitlines()
-        for index,line in enumerate(lines):
-            print(index, line)
+        # for index,line in enumerate(lines):
+        #     print(index, line)
+        mem_usage = lines[8]
+        vals = mem_usage.split(' ')
+        for index, val in vals:
+            print(index, val)
     get_gpu_mem_usage()
     return 
 
