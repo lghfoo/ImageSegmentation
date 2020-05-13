@@ -4,6 +4,7 @@ p
 
 fcn_resnet50
 ./models/fcn_resnet50.pth
+np
 
 segnet
 ./models/segnet.pth
