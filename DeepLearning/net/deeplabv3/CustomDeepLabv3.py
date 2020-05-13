@@ -50,9 +50,11 @@ def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True
     else:
         if (not dilation[0]) and dilation[1] and dilation[2]:
             classifier = model_map[name][0](inplanes, num_classes, [12, 24, 36])
-        else:
-            (not dilation[0]) and (not dilation[1]) and dilation[2]:
+        elif (not dilation[0]) and (not dilation[1]) and dilation[2]:
             classifier = model_map[name][0](inplanes, num_classes, [6, 12, 18])
+        else:
+            print('invalid dilation value')
+            return None
     base_model = model_map[name][1]
 
     model = base_model(backbone, classifier, aux_classifier)
