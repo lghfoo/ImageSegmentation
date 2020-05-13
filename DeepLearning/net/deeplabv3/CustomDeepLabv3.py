@@ -25,7 +25,7 @@ class CustomDeepLabHead(nn.Sequential):
         )
         print('rates: {}'.format(rates))
 
-def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True, dilation):
+def _segm_resnet(name, backbone_name, num_classes, aux, dilation, pretrained_backbone=True):
     backbone = resnet.__dict__[backbone_name](
         pretrained=pretrained_backbone,
         replace_stride_with_dilation=dilation)
