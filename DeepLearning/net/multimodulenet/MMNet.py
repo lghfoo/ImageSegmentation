@@ -210,12 +210,17 @@ class ASPP(nn.Module):
 class ParallelMultiModule(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(ParallelMultiModule, self).__init__()
+        self.seq1 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU())
+
         self.features = nn.ModuleList(
             [
-                PPM(in_channels, out_channels, bins=[1,2,3,6]),
-                DANetHead(in_channels, out_channels),
+                PPM(out_channels, out_channels, bins=[1,2,3,6]),
+                DANetHead(out_channels, out_channels),
                 # ASPP(in_channels, out_channels, atrous_rates=[6,12,18]),
-                ASPP(in_channels, out_channels, atrous_rates=[12,24,36]),
+                ASPP(out_channels, out_channels, atrous_rates=[12,24,36]),
             ]
         )
 
@@ -261,7 +266,7 @@ class MMNet(nn.Module):
         self.num_classes = num_classes
         # self.bins = bins
         self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
-        self.mm = ParallelMultiModule(2048, 2048)
+        self.mm = ParallelMultiModule(2048, 512)
         # for n, m in self.pretrained.backbone.layer3.named_modules():
         #     if 'conv2' in n:
         #         m.dilation, m.padding, m.stride = (2, 2), (2, 2), (1, 1)
@@ -275,15 +280,15 @@ class MMNet(nn.Module):
         # fea_dim = 2048
         # self.ppm = PPM(fea_dim, int(fea_dim/len(bins)), bins, nn.BatchNorm2d)
         # fea_dim *= 2
-        # self.cls = nn.Sequential(
-        #     nn.Conv2d(fea_dim, 512, kernel_size=3, padding=1, bias=False),
-        #     nn.BatchNorm2d(512),
-        #     nn.ReLU(inplace=True),
-        #     nn.Dropout2d(p=0.1),
-        #     nn.Conv2d(512, self.num_classes, kernel_size=1)
-        # )
+        self.cls = nn.Sequential(
+            nn.Conv2d(512, 256, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(p=0.1),
+            nn.Conv2d(256, self.num_classes, kernel_size=1)
+        )
         # self.cls = nn.Conv2d(512, self.num_classes, kernel_size=1)
-        self.cls = self.pretrained.classifier
+        # self.cls = self.pretrained.classifier
 
     def forward(self, x):
         x_size = x.size()[2:]
