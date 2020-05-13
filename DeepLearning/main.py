@@ -12,6 +12,7 @@ from net.pspnet.PSPNet import PSPNet
 from net.pfnet.PFNet import PFNet
 from net.danet.DANet import DANet
 from net.deeplabv3.DeepLabv3 import DeepLabv3
+from net.mdanet.MDANet import MDANet
 from net.deeplabv3.CustomDeepLabv3 import CustomDeepLabv3
 from net.multimodulenet.MMNet import MMNet
 from net.emanet.EMANet import EMANet
@@ -46,6 +47,7 @@ net_to_train/test/predict: [
     emanet,
     emanet_res101,
     mmnet,
+    mdanet,
 ]
 
 optimizer: [
@@ -86,6 +88,7 @@ examples:
     python main.py -train fcn_16s -o './fcn_16s_sift_flow.pth' -l 0.0001 -e 40 -b 4 -d '../../sift-flow' -opt adam -ds 'sift_flow' -gpus 0
     sudo python ./main.py -train mmnet -o './mmnet.pth' -l 0.0001 -e 80 -b 4 -d '../../CamVid' -opt adam -ds 'camvid11' -gpus 0
     sudo python ./main.py -train fcn_8s -o './fcn_8s.pth' -l 0.0001 -e 80 -b 4 -d '../../CamVid' -opt adam -ds 'camvid11' -gpus 0
+    sudo python ./main.py -train mdanet -o './mdanet.pth' -l 0.0001 -e 80 -b 4 -d '../../CamVid' -opt adam -ds 'camvid11' -gpus 0
 
 
 [Content in images_to_predict.txt]
@@ -142,6 +145,8 @@ def net_from_type_string(net_type, num_classes, output_stride=16):
         return EMANet(num_classes, 101)
     elif net_type == 'mmnet':
         return MMNet(num_classes)
+    elif net_type == 'mdanet':
+        return MDANet(num_classes)
     print('error: unkown net type')
     return None
 
