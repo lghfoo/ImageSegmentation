@@ -234,8 +234,11 @@ class ParallelMultiModule(nn.Module):
         x_size = x.size()
         # out = [x]
         out = []
-        for f in self.features:
-            out.append(F.interpolate(f(x), x_size[2:], mode='bilinear', align_corners=True))
+        # for f in self.features:
+            # out.append(F.interpolate(f(x), x_size[2:], mode='bilinear', align_corners=True))
+        out.append(F.interpolate(self.features[0](x), x_size[2:], mode='bilinear', align_corners=True))
+        out.append(F.interpolate(self.features[1](x), x_size[2:], mode='bilinear', align_corners=True))
+        out.append(F.interpolate(self.features[2](x), x_size[2:], mode='bilinear', align_corners=True))
         out = torch.cat(out, 1)
         out = self.project(out)
         return out
