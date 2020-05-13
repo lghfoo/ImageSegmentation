@@ -75,8 +75,8 @@ def _load_model(arch_type, backbone, pretrained, progress, num_classes, aux_loss
             model.load_state_dict(state_dict)
     return model
 
-def deeplabv3_resnet50(pretrained=False, progress=True,
-                       num_classes=21, aux_loss=None, dilation, **kwargs):
+def deeplabv3_resnet50(dilation, pretrained=False, progress=True,
+                       num_classes=21, aux_loss=None, **kwargs):
     """Constructs a DeepLabV3 model with a ResNet-50 backbone.
 
     Args:
@@ -86,8 +86,8 @@ def deeplabv3_resnet50(pretrained=False, progress=True,
     """
     return _load_model('deeplabv3', 'resnet50', pretrained, progress, num_classes, aux_loss, dilation, **kwargs)
 
-def deeplabv3_resnet101(pretrained=False, progress=True,
-                       num_classes=21, aux_loss=None, dilation, **kwargs):
+def deeplabv3_resnet101(dilation, pretrained=False, progress=True,
+                       num_classes=21, aux_loss=None, **kwargs):
     """Constructs a DeepLabV3 model with a ResNet-101 backbone.
 
     Args:
@@ -111,9 +111,9 @@ class CustomDeepLabv3(nn.Module):
         }
         print('output stride: {}, dilation: {}'.format(output_stride, stride_dict[self.output_stride]))
         if n_layers == 50:
-            self.pretrained = deeplabv3_resnet50(pretrained=False, num_classes=self.num_classes, dilation=stride_dict[self.output_stride])
+            self.pretrained = deeplabv3_resnet50(dilation=stride_dict[self.output_stride], pretrained=False, num_classes=self.num_classes)
         elif n_layers == 101:
-            self.pretrained = deeplabv3_resnet101(pretrained=False, num_classes=self.num_classes, dilation=stride_dict[self.output_stride])
+            self.pretrained = deeplabv3_resnet101(dilation=stride_dict[self.output_stride], pretrained=False, num_classes=self.num_classes)
         else:
             print("layer num error")
     
