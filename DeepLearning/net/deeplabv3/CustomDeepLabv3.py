@@ -4,7 +4,7 @@ import torchvision
 from torchvision.models import resnet
 from torchvision.models._utils import IntermediateLayerGetter
 from torchvision.models.utils import load_state_dict_from_url
-from torchvision.models.segmentation.deeplabv3 import DeepLabHead, DeepLabV3
+from torchvision.models.segmentation.deeplabv3 import DeepLabHead, DeepLabV3, ASPP
 from torchvision.models.segmentation.fcn import FCN, FCNHead
 
 model_urls = {
@@ -13,6 +13,17 @@ model_urls = {
     'deeplabv3_resnet50_coco': None,
     'deeplabv3_resnet101_coco': 'https://download.pytorch.org/models/deeplabv3_resnet101_coco-586e9e4e.pth',
 }
+
+class CustomDeepLabHead(nn.Sequential):
+    def __init__(self, in_channels, num_classes, rates=[12,24,36]):
+        super(CustomDeepLabHead, self).__init__(
+            print('rates: {}'.format(rates))
+            ASPP(in_channels, rates),
+            nn.Conv2d(256, 256, 3, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, num_classes, 1)
+        )
 
 def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True, dilation=[False, True, True]):
     backbone = resnet.__dict__[backbone_name](
@@ -30,11 +41,18 @@ def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True
         aux_classifier = FCNHead(inplanes, num_classes)
 
     model_map = {
-        'deeplabv3': (DeepLabHead, DeepLabV3),
+        'deeplabv3': (CustomDeepLabHead, DeepLabV3),
         'fcn': (FCNHead, FCN),
     }
     inplanes = 2048
-    classifier = model_map[name][0](inplanes, num_classes)
+    if name == 'fcn':
+        classifier = model_map[name][0](inplanes, num_classes)
+    else:
+        if (not dilation[0]) and dilation[1] and dilation[2]:
+            classifier = model_map[name][0](inplanes, num_classes, [12, 24, 36])
+        else:
+            (not dilation[0]) and (not dilation[1]) and dilation[2]:
+            classifier = model_map[name][0](inplanes, num_classes, [6, 12, 18])
     base_model = model_map[name][1]
 
     model = base_model(backbone, classifier, aux_classifier)
