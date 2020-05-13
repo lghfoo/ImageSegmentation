@@ -25,7 +25,7 @@ class CustomDeepLabHead(nn.Sequential):
         )
         print('rates: {}'.format(rates))
 
-def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True, dilation=[False, True, True]):
+def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True, dilation):
     backbone = resnet.__dict__[backbone_name](
         pretrained=pretrained_backbone,
         replace_stride_with_dilation=dilation)
@@ -61,7 +61,7 @@ def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True
     model = base_model(backbone, classifier, aux_classifier)
     return model
 
-def _load_model(arch_type, backbone, pretrained, progress, num_classes, aux_loss, dilation=[False, True, True], **kwargs):
+def _load_model(arch_type, backbone, pretrained, progress, num_classes, aux_loss, dilation, **kwargs):
     if pretrained:
         aux_loss = True
     model = _segm_resnet(arch_type, backbone, num_classes, aux_loss, dilation, **kwargs)
@@ -76,7 +76,7 @@ def _load_model(arch_type, backbone, pretrained, progress, num_classes, aux_loss
     return model
 
 def deeplabv3_resnet50(pretrained=False, progress=True,
-                       num_classes=21, aux_loss=None, dilation=[False, True, True], **kwargs):
+                       num_classes=21, aux_loss=None, dilation, **kwargs):
     """Constructs a DeepLabV3 model with a ResNet-50 backbone.
 
     Args:
@@ -87,7 +87,7 @@ def deeplabv3_resnet50(pretrained=False, progress=True,
     return _load_model('deeplabv3', 'resnet50', pretrained, progress, num_classes, aux_loss, dilation, **kwargs)
 
 def deeplabv3_resnet101(pretrained=False, progress=True,
-                       num_classes=21, aux_loss=None, dilation=[False, True, True], **kwargs):
+                       num_classes=21, aux_loss=None, dilation=, **kwargs):
     """Constructs a DeepLabV3 model with a ResNet-101 backbone.
 
     Args:
