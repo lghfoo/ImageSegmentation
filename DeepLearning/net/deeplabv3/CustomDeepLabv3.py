@@ -17,13 +17,13 @@ model_urls = {
 class CustomDeepLabHead(nn.Sequential):
     def __init__(self, in_channels, num_classes, rates=[12,24,36]):
         super(CustomDeepLabHead, self).__init__(
-            print('rates: {}'.format(rates))
             ASPP(in_channels, rates),
             nn.Conv2d(256, 256, 3, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(),
             nn.Conv2d(256, num_classes, 1)
         )
+        print('rates: {}'.format(rates))
 
 def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True, dilation=[False, True, True]):
     backbone = resnet.__dict__[backbone_name](
