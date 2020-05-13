@@ -244,25 +244,38 @@ class ParallelMultiModule(nn.Module):
         out = self.project(out)
         return out
 
-# class ParallelMultiModule(nn.Module):
-#     def __init__(self, in_dim, reduction_dim, bins, BatchNorm):
-#         super(ParallelMultiModule, self).__init__()
-#         self.features = []
-#         for bin in bins:
-#             self.features.append(nn.Sequential(
-#                 nn.AdaptiveAvgPool2d(bin),
-#                 nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=False),
-#                 BatchNorm(reduction_dim),
-#                 nn.ReLU(inplace=True)
-#             ))
-#         self.features = nn.ModuleList(self.features)
+class CascadeMultiModule(nn.Module):
+    def __init__(self, in_channels, out_channels, bins, BatchNorm):
+        super(CascadeMultiModule, self).__init__()
+        self.seq1 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU())
 
-#     def forward(self, x):
-#         x_size = x.size()
-#         out = [x]
-#         for f in self.features:
-#             out.append(F.interpolate(f(x), x_size[2:], mode='bilinear', align_corners=True))
-#         return torch.cat(out, 1)
+        self.features = nn.ModuleList(
+            [
+                PPM(out_channels, out_channels, bins=[1,2,3,6]),
+                DANetHead(out_channels, out_channels),
+                # ASPP(in_channels, out_channels, atrous_rates=[6,12,18]),
+                ASPP(out_channels, out_channels, atrous_rates=[12,24,36]),
+            ]
+        )
+
+        self.project = nn.Sequential(
+            nn.Conv2d(3 * out_channels, out_channels, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+            nn.Dropout(0.5))
+
+
+    def forward(self, x):
+        x_size = x.size()
+        x = self.features[0](x)
+        x = self.features[1](x)
+        x = self.features[2](x)
+        x = F.interpolate(x, x_size[2:], mode='bilinear', align_corners=True)
+        x = self.project(x)
+        return x
 
 class MMNet(nn.Module):
     def __init__(self, num_classes):
