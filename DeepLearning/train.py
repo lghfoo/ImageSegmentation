@@ -138,7 +138,7 @@ def train(net, train_config):
         ### validate
         if hasattr(net, 'training'):
             net.training = False
-        global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou = validate.validate(net, valset, batch_size, train_config.gpus, criterion, num_classes=train_config.num_classes)
+        global_accuracy, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou, avg_time = validate.validate(net, valset, batch_size, train_config.gpus, criterion, num_classes=train_config.num_classes)
 
         if best_global_accuracy is None or best_global_accuracy < global_accuracy:
             log('save model')

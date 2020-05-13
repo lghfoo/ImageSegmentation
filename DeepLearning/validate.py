@@ -4,6 +4,7 @@ import numpy as np
 from dataset import CamVid
 from dataset import VOC2012
 from dataset import SiftFlow
+import time
 class CrossEntropyLoss2d(nn.Module):
     def __init__(self, weight=None, ignore_index=255, reduction='mean'):
         super(CrossEntropyLoss2d, self).__init__()
@@ -72,6 +73,7 @@ def validate(net, valset, batch_size, device, criterion, num_classes):
     intersection_meter = AverageMeter()
     union_meter = AverageMeter()
     target_meter = AverageMeter()
+    time_meter = AverageMeter()
     iter_count = 0
     val_loss = 0
     with torch.no_grad():
@@ -83,13 +85,16 @@ def validate(net, valset, batch_size, device, criterion, num_classes):
                 continue
             labels = data[1].cuda()
             # labels = data[1].to(device)
+            beg_time = time.time()
             outputs = net(inputs)
+            end_time = time.time()
             loss = criterion(outputs, labels.squeeze(1).long())
             _, preds = torch.max(outputs, 1)
             intersection, union, target = intersection_and_union(preds, labels, num_classes)
             intersection_meter.update(intersection)
             union_meter.update(union)
             target_meter.update(target)
+            time_meter.update(end_time - beg_time)
             val_loss += loss.item()
             iter_count += 1
             # break
@@ -99,4 +104,4 @@ def validate(net, valset, batch_size, device, criterion, num_classes):
     mIoU = classes_iou.mean()
     classes_avg_accuracy = classes_accuracy.mean()
     global_acc = sum(intersection_meter.sum) / (sum(target_meter.sum) + 1e-10)
-    return global_acc, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou
+    return global_acc, classes_avg_accuracy, mIoU, val_loss, classes_accuracy, classes_iou, time_meter.avg * 1000

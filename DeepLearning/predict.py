@@ -61,7 +61,7 @@ def predict(net, input_image_path, output_image_path, classes, need_dbl=False):
     if not hasattr(net, 'module'):
         img_tensor = img_tensor.cuda()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
     # beg_mem = torch.cuda.memory_allocated(device=device)#get_used_mem()
     beg = time.time()
     outputs = net(img_tensor)
