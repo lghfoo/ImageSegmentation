@@ -2,10 +2,6 @@ fcn_8s
 ./models/fcn_8s.pth
 p
 
-fcn_resnet50
-./models/fcn_resnet50.pth
-np
-
 segnet
 ./models/segnet.pth
 p

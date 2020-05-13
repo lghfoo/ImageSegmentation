@@ -245,7 +245,7 @@ class ParallelMultiModule(nn.Module):
         return out
 
 class CascadeMultiModule(nn.Module):
-    def __init__(self, in_channels, out_channels, bins, BatchNorm):
+    def __init__(self, in_channels, out_channels):
         super(CascadeMultiModule, self).__init__()
         self.seq1 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 1, bias=False),
@@ -283,7 +283,8 @@ class MMNet(nn.Module):
         self.num_classes = num_classes
         # self.bins = bins
         self.pretrained = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=self.num_classes)
-        self.mm = ParallelMultiModule(2048, 512)
+        # self.mm = ParallelMultiModule(2048, 512)
+        self.mm = CascadeMultiModule(2048, 512)
         # for n, m in self.pretrained.backbone.layer3.named_modules():
         #     if 'conv2' in n:
         #         m.dilation, m.padding, m.stride = (2, 2), (2, 2), (1, 1)
