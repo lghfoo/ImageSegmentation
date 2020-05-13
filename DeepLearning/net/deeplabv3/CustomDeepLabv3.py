@@ -87,7 +87,7 @@ def deeplabv3_resnet50(pretrained=False, progress=True,
     return _load_model('deeplabv3', 'resnet50', pretrained, progress, num_classes, aux_loss, dilation, **kwargs)
 
 def deeplabv3_resnet101(pretrained=False, progress=True,
-                       num_classes=21, aux_loss=None, dilation=, **kwargs):
+                       num_classes=21, aux_loss=None, dilation, **kwargs):
     """Constructs a DeepLabV3 model with a ResNet-101 backbone.
 
     Args:
