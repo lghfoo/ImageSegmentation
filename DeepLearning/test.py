@@ -55,7 +55,7 @@ def test(net, test_config):
     log("test_loss: " + str(test_loss))
     for i in range(net.module.num_classes):
         log('Class_{} result: iou/accuracy {:.4f}/{:.4f}, name: {}.'.format(i, classes_iou[i], classes_accuracy[i], validate.get_dataset_classes(test_config.dataset)[i]))
-    log('avg inference time: {}'.format(avg_time))
+    log('avg inference time: {} ms'.format(avg_time))
     log('******** test end [{}] ********'.format(time.strftime("%a %b %d %H:%M:%S %Y", time.localtime())))
     test_log_file.close()
 
