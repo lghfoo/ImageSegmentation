@@ -1,19 +1,22 @@
 fcn_8s
-./fcn_8s.pth
+./models/fcn_8s.pth
 p
 
+fcn_resnet50
+./models/fcn_resnet50.pth
+
 segnet
-./segnet.pth
-np
+./models/segnet.pth
+p
 
 danet
-./danet.pth
+./models/danet.pth
 p
 
 pspnet
-./pspnet.pth
+./models/pspnet.pth
 p
 
 deeplabv3
-./deeplabv3.pth
+./models/deeplabv3.pth
 p
