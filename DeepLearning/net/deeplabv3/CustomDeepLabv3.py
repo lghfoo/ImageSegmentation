@@ -109,7 +109,7 @@ class CustomDeepLabv3(nn.Module):
             16: [False, False, True],
             32: [False, False, False]
         }
-        print('output stride: {}'.format(output_stride))
+        print('output stride: {}, dilation: {}'.format(output_stride, stride_dict[self.output_stride]))
         if n_layers == 50:
             self.pretrained = deeplabv3_resnet50(pretrained=False, num_classes=self.num_classes, dilation=stride_dict[self.output_stride])
         elif n_layers == 101:
