@@ -23,7 +23,7 @@ class CustomDeepLabHead(nn.Sequential):
             nn.ReLU(),
             nn.Conv2d(256, num_classes, 1)
         )
-        print('rates: {}'.format(rates))
+        # print('rates: {}'.format(rates))
 
 def _segm_resnet(name, backbone_name, num_classes, aux, dilation, pretrained_backbone=True):
     backbone = resnet.__dict__[backbone_name](
@@ -45,7 +45,7 @@ def _segm_resnet(name, backbone_name, num_classes, aux, dilation, pretrained_bac
         'fcn': (FCNHead, FCN),
     }
     inplanes = 2048
-    print('dilation: {}'.format(dilation))
+    # print('dilation: {}'.format(dilation))
     if name == 'fcn':
         classifier = model_map[name][0](inplanes, num_classes)
     else:
@@ -109,7 +109,7 @@ class CustomDeepLabv3(nn.Module):
             16: [False, False, True],
             32: [False, False, False]
         }
-        print('output stride: {}, dilation: {}'.format(output_stride, stride_dict[self.output_stride]))
+        # print('output stride: {}, dilation: {}'.format(output_stride, stride_dict[self.output_stride]))
         if n_layers == 50:
             self.pretrained = deeplabv3_resnet50(dilation=stride_dict[self.output_stride], pretrained=False, num_classes=self.num_classes)
         elif n_layers == 101:
